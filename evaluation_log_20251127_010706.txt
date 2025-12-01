@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "run_parquet_evaluation.py", line 27, in <module>
+    import image.image_main as image_main
+  File "/home/mhasan02/SemCluster-v2-clean/image/image_main.py", line 1, in <module>
+    import image.structure_feature
+  File "/home/mhasan02/SemCluster-v2-clean/image/structure_feature.py", line 9, in <module>
+    import image.widget as widget
+  File "/home/mhasan02/SemCluster-v2-clean/image/widget.py", line 8, in <module>
+    import pytesseract
+ModuleNotFoundError: No module named 'pytesseract'

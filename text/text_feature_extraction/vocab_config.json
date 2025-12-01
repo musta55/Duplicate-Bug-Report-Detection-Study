@@ -1,0 +1,5 @@
+{
+  "vocab_size": 3137,
+  "max_document_length": 150,
+  "embedding_dim": 128
+}

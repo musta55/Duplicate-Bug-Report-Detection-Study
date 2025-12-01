@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "run_parquet_evaluation.py", line 27, in <module>
+    import image.image_main as image_main
+  File "/home/mhasan02/SemCluster-v2-clean/image/image_main.py", line 1, in <module>
+    import image.structure_feature
+  File "/home/mhasan02/SemCluster-v2-clean/image/structure_feature.py", line 6, in <module>
+    from apted import APTED, helpers
+ModuleNotFoundError: No module named 'apted'
