@@ -71,4 +71,4 @@ def calculate_metrics_from_result_csv(csv_path):
         print(f"  HITS@{k:2d}: {hits_scores[k]:.4f}")
 
 if __name__ == "__main__":
-    calculate_metrics_from_result_csv('semcluster_similarity_matrix_FILTERED.csv')
+    calculate_metrics_from_result_csv('semcluster_similarity_matrix_FILTERED_NORMALIZED.csv')

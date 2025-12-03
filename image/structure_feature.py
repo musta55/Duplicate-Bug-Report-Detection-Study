@@ -473,6 +473,17 @@ def getSTdis(pic_dir, label_csv, xml_dir="file/xml_file/", sample_df=None, query
         print(f"  → Computing {len(needed_pairs)} tree edit distances (instead of {len(str_list)*len(str_list)})")
         sys.stdout.flush()
         
+        # Pre-parse trees for performance
+        print(f"  → Pre-parsing {len(id_to_str)} trees for structure comparison...")
+        sys.stdout.flush()
+        tree_cache = {}
+        for idx, s in id_to_str.items():
+            try:
+                tree_cache[idx] = helpers.Tree.from_text(s)
+            except Exception:
+                # Fallback for empty or malformed strings
+                tree_cache[idx] = helpers.Tree.from_text("{1}")
+
         # Compute distances only for needed pairs
         distance_cache = {}
         pair_distances = {}
@@ -488,13 +499,13 @@ def getSTdis(pic_dir, label_csv, xml_dir="file/xml_file/", sample_df=None, query
             report_id1 = idx1
             report_id2 = idx2
 
-            # id_to_str is keyed by seq_idx for legacy compatibility
-            src = id_to_str.get(report_id1, "")
-            tgt = id_to_str.get(report_id2, "")
+            tree1 = tree_cache.get(report_id1)
+            tree2 = tree_cache.get(report_id2)
 
             try:
-                tree1 = helpers.Tree.from_text(src)
-                tree2 = helpers.Tree.from_text(tgt)
+                if tree1 is None or tree2 is None:
+                    raise ValueError("Tree not found in cache")
+                    
                 apted = APTED(tree1, tree2)
                 ted = apted.compute_edit_distance()
             except Exception as e:

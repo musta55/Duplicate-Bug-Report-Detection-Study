@@ -56,7 +56,13 @@ def text_feature_extraction(samples):
     x_raw_list = []
     sentences_list = []
     
-    for sample in samples:
+    total_samples = len(samples)
+    print(f"[TextCNN] Processing {total_samples} samples...")
+    
+    for i, sample in enumerate(samples):
+        if i % 1000 == 0:
+            print(f"[TextCNN] Tokenizing sample {i}/{total_samples}...")
+            
         # Coerce non-string samples (NaN, None) to empty string to avoid TypeError in re.split
         if sample is None:
             sample = ''

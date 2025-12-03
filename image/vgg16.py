@@ -66,17 +66,23 @@ def extract_features(image):
     return feature
 
 
-def getdistance(widget_list):
+def getdistance(widget_list, normalize=True):
     """
     GPU-OPTIMIZED: Compute distances between image pairs using VGG16 features.
     Process images in batches for maximum GPU throughput (100x faster than one-by-one).
+    
+    Args:
+        widget_list: List of (image1, image2) pairs
+        normalize: If True, L2-normalize feature vectors before distance calculation (Cosine-like)
     """
     if not widget_list:
         return []
     
     import sys
+    from sklearn.preprocessing import normalize as sk_normalize
+    
     total = len(widget_list)
-    print(f"  [VGG16 GPU-OPTIMIZED] Processing {total} widget pairs in batches...", flush=True)
+    print(f"  [VGG16 GPU-OPTIMIZED] Processing {total} widget pairs in batches... (Normalize={normalize})", flush=True)
     
     # GPU-optimized batch size - process many images at once
     gpu_batch_size = 128  # Process 128 images per GPU batch for maximum throughput
@@ -127,6 +133,21 @@ def getdistance(widget_list):
     
     # Compute distances (CPU operation, very fast)
     print(f"  [VGG16] Computing distances...", flush=True)
+    
+    # Convert to numpy arrays for faster processing
+    features_1_all = np.array(features_1_all)
+    features_2_all = np.array(features_2_all)
+    
+    # Flatten features if they are not already 1D per sample
+    if len(features_1_all.shape) > 2:
+        features_1_all = features_1_all.reshape(features_1_all.shape[0], -1)
+        features_2_all = features_2_all.reshape(features_2_all.shape[0], -1)
+        
+    if normalize:
+        print(f"  [VGG16] Applying L2 normalization to features...", flush=True)
+        features_1_all = sk_normalize(features_1_all, norm='l2', axis=1)
+        features_2_all = sk_normalize(features_2_all, norm='l2', axis=1)
+        
     for feat1, feat2 in zip(features_1_all, features_2_all):
         distance = np.sqrt(np.sum(np.square(feat1 - feat2)))
         distance_list.append(distance)
