@@ -28,3 +28,6 @@ __pycache__/
 *.log
 nohup.out
 *.pkl
+bug_reports_with_images.parquet
+*.tex
+*.bib

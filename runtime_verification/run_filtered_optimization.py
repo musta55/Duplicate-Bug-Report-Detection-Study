@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 """
-RESUME SemCluster Evaluation using Parquet Dataset
+OPTIMIZED SemCluster Evaluation for FILTERED Dataset
+With Normalized VGG16 and Caching
 
-This script is a modified version of run_parquet_evaluation.py designed to RESUME
-processing where it left off.
-
-DIFFERENCES FROM ORIGINAL:
-1. Does NOT delete existing image/xml directories.
-2. Skips extracting images that already exist.
-3. Relies on structure_feature.py's built-in caching to skip existing XMLs.
+This script:
+1. Runs on FILTERED dataset.
+2. Caches Structure and Text features to disk to avoid re-computation.
+3. Uses Normalized VGG16 features for Content distance.
 """
 
 import os
@@ -19,6 +17,7 @@ import numpy as np
 import pyarrow.parquet as pq
 from PIL import Image
 from io import BytesIO
+import pickle
 
 # Import SemCluster modules
 import cluster
@@ -26,23 +25,25 @@ import image.image_main as image_main
 import text.text_main as text_main
 from main import calculate_retrieval_metrics, debug_retrieval
 
+# Monkey patch image.vgg16.getdistance to use normalize=True by default
+import image.vgg16
+original_getdistance = image.vgg16.getdistance
+def normalized_getdistance(widget_list, normalize=True):
+    return original_getdistance(widget_list, normalize=True)
+image.vgg16.getdistance = normalized_getdistance
 
 def load_sample_queries(csv_path, n_queries=10, min_duplicates=2, require_images=True):
     """Load sample queries from CSV"""
     df = pd.read_csv(csv_path)
     
-    # Filter based on image requirement
     if require_images:
-        # FILTERED: queries with images and at least min_duplicates
         df_with_images = df[df['query_has_image'] == True].copy()
         df_with_images['gt_size'] = df_with_images['ground_truth_size']
         df_filtered = df_with_images[df_with_images['gt_size'] >= min_duplicates]
     else:
-        # FULL: all queries (with or without images)
         df['gt_size'] = df['ground_truth_size']
         df_filtered = df[df['gt_size'] >= min_duplicates]
     
-    # Sample queries (n_queries=-1 means all queries)
     if n_queries == -1 or n_queries > len(df_filtered):
         print(f"  Using all {len(df_filtered)} available queries")
         sample_df = df_filtered
@@ -54,9 +55,7 @@ def load_sample_queries(csv_path, n_queries=10, min_duplicates=2, require_images
     
     return sample_df
 
-
 def parse_id_list(id_string):
-    """Parse '[id1| id2| id3]' format into list of integers"""
     if pd.isna(id_string) or id_string == '[]':
         return []
     cleaned = id_string.strip('[]').strip()
@@ -65,39 +64,22 @@ def parse_id_list(id_string):
     ids = [int(x.strip()) for x in cleaned.split('|') if x.strip()]
     return ids
 
-
 def load_parquet_data(parquet_path, report_ids_by_repo):
-    """Load specific bug reports from parquet file"""
     table = pq.read_table(parquet_path)
     df = table.to_pandas()
     
-    # Load reports by filtering on BOTH repo_name AND id to avoid ID collisions
     dfs = []
     for repo_name, ids in report_ids_by_repo.items():
-        # Filter by repository name AND IDs
         repo_df = df[(df['repo_name'] == repo_name) & (df['id'].isin(ids))].copy()
         dfs.append(repo_df)
     
     if not dfs:
-        print(f"  ✗ No reports found in parquet!")
         return pd.DataFrame()
     
     df_filtered = pd.concat(dfs, ignore_index=True)
-    
-    # Report statistics
-    total_requested = sum(len(ids) for ids in report_ids_by_repo.values())
-    total_found = len(df_filtered)
-    with_images = len(df_filtered[df_filtered['valid_image'] == True])
-    
-    print(f"  Loaded {total_found}/{total_requested} reports from parquet")
-    print(f"  Reports with valid images: {with_images}/{total_found}")
-    
     return df_filtered
 
-
 def extract_images_from_parquet_resume(parquet_df, output_dir):
-    """Extract images from parquet binary data to disk - RESUME MODE"""
-    # NOTE: Do NOT delete output_dir here!
     os.makedirs(output_dir, exist_ok=True)
     
     extracted_count = 0
@@ -105,17 +87,15 @@ def extract_images_from_parquet_resume(parquet_df, output_dir):
     missing_count = 0
     error_count = 0
     
-    # Create sequential index mapping
     id_to_seq = {}
     seq_to_id = {}
-    reports_with_images = set()  # Track which reports have images
+    reports_with_images = set()
     
     print(f"  Checking {len(parquet_df)} reports for images...")
     
     for seq_idx, (idx, row) in enumerate(parquet_df.iterrows()):
         report_id = row['id']
         repo_name = row['repo_name']
-        # Use composite key to avoid ID collisions across projects
         composite_id = f"{repo_name}:{report_id}"
         
         id_to_seq[composite_id] = seq_idx
@@ -127,7 +107,6 @@ def extract_images_from_parquet_resume(parquet_df, output_dir):
             missing_count += 1
             continue
         
-        # Image is stored as dict with 'bytes' and 'path' fields
         if isinstance(image_data, dict):
             image_bytes = image_data.get('bytes')
         else:
@@ -137,41 +116,30 @@ def extract_images_from_parquet_resume(parquet_df, output_dir):
             missing_count += 1
             continue
             
-        # Check if image already exists
         output_path = os.path.join(output_dir, f"report_img_{seq_idx}.png")
         if os.path.exists(output_path):
-            # Already extracted - skip but count it
             extracted_count += 1
             skipped_count += 1
             reports_with_images.add(composite_id)
             continue
         
         try:
-            # Load image from binary data
             img = Image.open(BytesIO(image_bytes))
-            
-            # Convert CMYK to RGB if needed
             if img.mode == 'CMYK':
                 img = img.convert('RGB')
-            
-            # Save with SEQUENTIAL index for SemCluster compatibility
             img.save(output_path, 'PNG')
             extracted_count += 1
-            reports_with_images.add(composite_id)  # Track this report has an image
+            reports_with_images.add(composite_id)
             
         except Exception as e:
             error_count += 1
-            if error_count <= 3:  # Only print first few errors
+            if error_count <= 3:
                 print(f"  Error extracting image for {composite_id}: {e}")
     
     print(f"  Total images: {extracted_count} (Skipped existing: {skipped_count}, New: {extracted_count - skipped_count})")
-    print(f"  Missing data: {missing_count}, Errors: {error_count}")
     return extracted_count, id_to_seq, seq_to_id, reports_with_images
 
-
 def prepare_evaluation_csv(sample_df, parquet_df, img_dir, output_path, id_to_seq):
-    """Create CSV file for SemCluster evaluation."""
-    # Build ID-to-cluster mapping from ground truth
     id_to_cluster = {}
     for idx, query_row in sample_df.iterrows():
         query_id = query_row['query']
@@ -227,15 +195,12 @@ def prepare_evaluation_csv(sample_df, parquet_df, img_dir, output_path, id_to_se
     
     df_eval = pd.DataFrame(rows)
     df_eval.to_csv(output_path, index=False)
-    
-    print(f"  Created CSV with {len(df_eval)} rows")
     return df_eval, id_to_cluster
 
-
-def run_semcluster_pipeline(eval_csv_path, img_dir, xml_dir, reports_with_images, seq_to_id, parquet_df, sample_df, query_to_valid_corpus):
-    """Run SemCluster's feature extraction"""
+def run_semcluster_pipeline_optimized(eval_csv_path, img_dir, xml_dir, reports_with_images, seq_to_id, parquet_df, sample_df, query_to_valid_corpus, cache_file='feature_cache_filtered.pkl'):
+    """Run SemCluster's feature extraction with caching"""
     print("\n" + "="*70)
-    print("SEMCLUSTER FEATURE EXTRACTION (RESUME MODE)")
+    print("SEMCLUSTER FEATURE EXTRACTION (OPTIMIZED + CACHED)")
     print("="*70)
     
     if not img_dir.endswith('/'):
@@ -243,43 +208,58 @@ def run_semcluster_pipeline(eval_csv_path, img_dir, xml_dir, reports_with_images
     if not xml_dir.endswith('/'):
         xml_dir = xml_dir + '/'
     
-    n_with_images = len(reports_with_images)
-    n_without_images = len(seq_to_id) - len(reports_with_images)
-    
-    print("\n[1/2] Extracting image features...")
-    print(f"  Reports with images: {n_with_images}")
-    
+    # Check cache
     st_pairs = {}
     ct_pairs = {}
+    p_pairs = {}
+    r_pairs = {}
+    st_list = []
+    ct_list = []
+    p_list = []
+    r_list = []
     
-    # CACHE IMPLEMENTATION FOR IMAGE FEATURES
-    dataset_suffix = "FULL" if "FULL" in eval_csv_path else "FILTERED"
-    image_cache_file = f"image_features_cache_{dataset_suffix}.pkl"
-    
-    import pickle
-    if os.path.exists(image_cache_file):
-        print(f"  → [CACHE] Found {image_cache_file}, loading cached image features...")
+    cache_exists = False
+    if os.path.exists(cache_file):
+        print(f"  → Found cache file: {cache_file}")
         try:
-            with open(image_cache_file, 'rb') as f:
-                cached_data = pickle.load(f)
-            st_list, ct_list, st_pairs, ct_pairs = cached_data
-            print(f"  ✓ Image features loaded from cache")
-            # Skip computation
-            n_with_images = 0 
+            with open(cache_file, 'rb') as f:
+                cache_data = pickle.load(f)
+                st_pairs = cache_data.get('st_pairs', {})
+                p_pairs = cache_data.get('p_pairs', {})
+                r_pairs = cache_data.get('r_pairs', {})
+                st_list = cache_data.get('st_list', [])
+                p_list = cache_data.get('p_list', [])
+                r_list = cache_data.get('r_list', [])
+                print(f"  → Loaded cached Structure ({len(st_pairs)} pairs) and Text ({len(p_pairs)} pairs) features")
+                cache_exists = True
         except Exception as e:
-            print(f"  ⚠ Failed to load image cache: {e}. Recomputing...")
-            st_list = None
-    else:
-        st_list = None
-
-    if st_list is None and n_with_images > 0:
+            print(f"  ⚠ Error loading cache: {e}")
+    
+    n_with_images = len(reports_with_images)
+    
+    print("\n[1/2] Extracting image features...")
+    
+    # Always re-run image_main to get Content features (VGG16) with normalization
+    # But we can inject the cached Structure features if available
+    
+    if n_with_images > 0:
         import numpy as np
         np.seterr(all='raise')
         
-        try:
-            # image_main calls getSTdis which calls getStrs
-            # getStrs checks for existing XML files and skips them
-            # So this will automatically resume!
+        # We need to run image_main, but we want to skip getSTdis if we have cached st_pairs
+        # However, image_main calls both.
+        # To properly optimize, we should call getCTdis directly if we have st_pairs.
+        # But image_main also returns st_list/ct_list which are needed for clustering (though dummy values are used later).
+        
+        if cache_exists and st_pairs:
+            print("  → Using cached Structure features, running Content features (Normalized VGG16)...")
+            import image.content_feature
+            ct_list, ct_pairs = image.content_feature.getCTdis(
+                xml_dir, img_dir, eval_csv_path, sample_df, query_to_valid_corpus, seq_to_id, parquet_df
+            )
+            # st_list is already loaded from cache
+        else:
+            print("  → Computing Structure and Content features...")
             st_list, ct_list, st_pairs, ct_pairs = image_main.image_main(
                 img_dir,
                 eval_csv_path,
@@ -289,106 +269,75 @@ def run_semcluster_pipeline(eval_csv_path, img_dir, xml_dir, reports_with_images
                 seq_to_id,
                 parquet_df
             )
-            print(f"  ✓ Structure features extracted: {len(st_list)-1} reports")
-            print(f"  ✓ Content features extracted: {len(ct_list)-1} reports")
-            
-            # Save to cache
-            print(f"  → [CACHE] Saving image features to {image_cache_file}...")
-            try:
-                with open(image_cache_file, 'wb') as f:
-                    pickle.dump((st_list, ct_list, st_pairs, ct_pairs), f)
-                print(f"  ✓ Image features cached")
-            except Exception as e:
-                print(f"  ⚠ Failed to save image cache: {e}")
-                
-        except Exception as e:
-            import traceback
-            print(f"  ⚠ Image feature extraction failed: {type(e).__name__}: {e}")
-            traceback.print_exc()
-            print(f"  → Creating zero image features for reports with images")
-            # FIX: Use all sequence IDs to ensure correct matrix dimensions
-            header = ['index'] + sorted(seq_to_id.keys())
-            st_list = [header]
-            ct_list = [header]
-            # We don't add rows to save memory, as avg_data_adaptive only uses the header
-            st_pairs = {}
-            ct_pairs = {}
-            # for seq_idx in sorted(seq_to_id.keys()):
-            #     report_id = seq_to_id[seq_idx]
-            #     if report_id in reports_with_images:
-            #         zero_row = [seq_idx] + [0.0] * 512
-            #         st_list.append(zero_row)
-            #         ct_list.append(zero_row)
-        
-        if n_without_images > 0:
-            print(f"  → Adding zero image features for {n_without_images} reports without images")
-            # header = st_list[0]
-            # n_features = len(header) - 1
-            # seq_ids_with_features = set(row[0] for row in st_list[1:])
-            # for seq_idx in sorted(seq_to_id.keys()):
-            #     if seq_idx not in seq_ids_with_features:
-            #         report_id = seq_to_id[seq_idx]
-            #         if report_id not in reports_with_images:
-            #             zero_row = [seq_idx] + [0.0] * n_features
-            #             st_list.append(zero_row)
-            #             ct_list.append(zero_row)
-            # st_list = [st_list[0]] + sorted(st_list[1:], key=lambda x: x[0])
-            # ct_list = [ct_list[0]] + sorted(ct_list[1:], key=lambda x: x[0])
     else:
-        print(f"  → No images available, creating zero image features")
-        header = ['index'] + sorted(seq_to_id.keys())
+        # No images
+        header = list(range(1, 513))
+        header.insert(0, 'index')
         st_list = [header]
         ct_list = [header]
         st_pairs = {}
         ct_pairs = {}
-        # for seq_idx in sorted(seq_to_id.keys()):
-        #     zero_row = [seq_idx] + [0.0] * 512
-        #     st_list.append(zero_row)
-        #     ct_list.append(zero_row)
-    
-    print("\n[2/2] Extracting text features...")
-    all_reports_csv = eval_csv_path.replace('evaluation.csv', 'evaluation_all_reports.csv')
-    
-    rows = []
-    for seq_idx in sorted(seq_to_id.keys()):
-        composite_id = seq_to_id[seq_idx]
-        if ':' in str(composite_id):
-            repo_name, report_id_str = str(composite_id).split(':', 1)
-            report_id = int(report_id_str)
-            report_row = parquet_df[(parquet_df['id'] == report_id) & (parquet_df['repo_name'] == repo_name)]
-        else:
-            report_id = int(composite_id)
-            report_row = parquet_df[parquet_df['id'] == report_id]
-            
-        if len(report_row) > 0:
-            report_row = report_row.iloc[0]
-            title = str(report_row.get('title', ''))
-            description = str(report_row.get('description', ''))
-            comments = str(report_row.get('comments', ''))
-            full_text = f"Title:{title} Description:{description} Comments:{comments}"
-            rows.append({
-                'index': seq_idx,
-                'description': full_text.replace('\n', ' ').replace(',', ';')[:1000]
-            })
-    
-    pd.DataFrame(rows).to_csv(all_reports_csv, index=False)
-    
-    p_pairs = {}
-    r_pairs = {}
+        for seq_idx in sorted(seq_to_id.keys()):
+            zero_row = [seq_idx] + [0.0] * 512
+            st_list.append(zero_row)
+            ct_list.append(zero_row)
 
-    try:
-        print(f"  → Running TextCNN on GPU...")
-        p_list, r_list, p_pairs, r_pairs = text_main.text_main(
-            all_reports_csv,
-            sample_df,
-            query_to_valid_corpus,
-            seq_to_id,
-            parquet_df
-        )
-        print(f"  ✓ TextCNN features extracted")
-    except Exception as e:
-        print(f"  ✗ CRITICAL: TextCNN feature extraction failed: {e}")
-        raise RuntimeError(f"TextCNN extraction failed: {e}")
+    print("\n[2/2] Extracting text features...")
+    
+    if cache_exists and p_pairs and r_pairs:
+        print("  → Using cached Text features")
+        # p_list, r_list already loaded
+    else:
+        print("  → Computing Text features...")
+        all_reports_csv = eval_csv_path.replace('evaluation.csv', 'evaluation_all_reports.csv')
+        rows = []
+        for seq_idx in sorted(seq_to_id.keys()):
+            composite_id = seq_to_id[seq_idx]
+            if ':' in str(composite_id):
+                repo_name, report_id_str = str(composite_id).split(':', 1)
+                report_id = int(report_id_str)
+                report_row = parquet_df[(parquet_df['id'] == report_id) & (parquet_df['repo_name'] == repo_name)]
+            else:
+                report_id = int(composite_id)
+                report_row = parquet_df[parquet_df['id'] == report_id]
+                
+            if len(report_row) > 0:
+                report_row = report_row.iloc[0]
+                title = str(report_row.get('title', ''))
+                description = str(report_row.get('description', ''))
+                comments = str(report_row.get('comments', ''))
+                full_text = f"Title:{title} Description:{description} Comments:{comments}"
+                rows.append({
+                    'index': seq_idx,
+                    'description': full_text.replace('\n', ' ').replace(',', ';')[:1000]
+                })
+        
+        pd.DataFrame(rows).to_csv(all_reports_csv, index=False)
+        
+        try:
+            p_list, r_list, p_pairs, r_pairs = text_main.text_main(
+                all_reports_csv,
+                sample_df,
+                query_to_valid_corpus,
+                seq_to_id,
+                parquet_df
+            )
+        except Exception as e:
+            print(f"  ✗ CRITICAL: TextCNN feature extraction failed: {e}")
+            raise RuntimeError(f"TextCNN extraction failed: {e}")
+
+    # Save to cache (update with new ct_pairs if needed, though we don't cache ct_pairs usually as we are experimenting with it)
+    # We cache ST, P, R pairs because they are stable. CT pairs change with VGG16 normalization.
+    print(f"  → Updating cache file: {cache_file}")
+    with open(cache_file, 'wb') as f:
+        pickle.dump({
+            'st_pairs': st_pairs,
+            'p_pairs': p_pairs,
+            'r_pairs': r_pairs,
+            'st_list': st_list,
+            'p_list': p_list,
+            'r_list': r_list
+        }, f)
     
     return {
         'st_list': st_list,
@@ -401,9 +350,7 @@ def run_semcluster_pipeline(eval_csv_path, img_dir, xml_dir, reports_with_images
         'r_pairs': r_pairs
     }
 
-
 def _combine_sparse_pair_distances(feature_data, reports_with_images):
-    """Merge sparse per-pair distances"""
     st_pairs = feature_data.get('st_pairs', {}) or {}
     ct_pairs = feature_data.get('ct_pairs', {}) or {}
     p_pairs = feature_data.get('p_pairs', {}) or {}
@@ -449,9 +396,7 @@ def _combine_sparse_pair_distances(feature_data, reports_with_images):
             
     return combined_pairs
 
-
-def avg_data_adaptive(feature_data, combined_pairs, seq_to_id, parquet_df, query_seq_ids=None):
-    """Average sparse distances into a dense matrix"""
+def avg_data_adaptive(feature_data, combined_pairs, seq_to_id, parquet_df):
     st_list = feature_data['st_list']
     header = list(st_list[0])
     seq_headers = [int(col) for col in header[1:]]
@@ -473,17 +418,8 @@ def avg_data_adaptive(feature_data, combined_pairs, seq_to_id, parquet_df, query
             repo_name = inferred_repo.get(report_id, 'Unknown')
         return repo_name
     
-    # Determine which rows to generate
-    if query_seq_ids is not None:
-        # Only generate rows for queries (and ensure they exist in seq_headers)
-        row_indices = [sid for sid in query_seq_ids if sid in seq_headers]
-        print(f"  → Generating similarity matrix for {len(row_indices)} queries only (optimized)")
-    else:
-        row_indices = seq_headers
-        print(f"  → Generating full N×N similarity matrix ({len(row_indices)} rows)")
-
     avg_rows = [header]
-    for seq_idx in row_indices:
+    for seq_idx in seq_headers:
         row = [seq_idx]
         query_composite_id = seq_to_id.get(seq_idx, seq_idx)
         
@@ -523,32 +459,9 @@ def avg_data_adaptive(feature_data, combined_pairs, seq_to_id, parquet_df, query
         avg_rows.append(row)
     return avg_rows
 
-
-def convert_to_similarity_matrix(feature_data, metric_name, seq_to_id, reports_with_images, parquet_df, sample_df=None):
-    """Convert sparse per-pair distances to a dense similarity DataFrame."""
+def convert_to_similarity_matrix(feature_data, metric_name, seq_to_id, reports_with_images, parquet_df):
     combined_pairs = _combine_sparse_pair_distances(feature_data, reports_with_images)
-    print(f"  → Averaging sparse distance dictionaries ({len(combined_pairs)} computed pairs)...")
-    
-    # Identify query sequence IDs if sample_df is provided
-    query_seq_ids = None
-    if sample_df is not None:
-        query_seq_ids = set()
-        # Build reverse mapping (repo, id) -> seq_idx
-        repo_id_to_seq = {}
-        for seq_idx, composite_id in seq_to_id.items():
-            if ':' in str(composite_id):
-                repo, rid = str(composite_id).split(':', 1)
-                try:
-                    repo_id_to_seq[(repo, int(rid))] = seq_idx
-                except ValueError:
-                    pass
-        
-        for _, row in sample_df.iterrows():
-            key = (row['Repository_Name'], row['query'])
-            if key in repo_id_to_seq:
-                query_seq_ids.add(repo_id_to_seq[key])
-    
-    avg_list = avg_data_adaptive(feature_data, combined_pairs, seq_to_id, parquet_df, query_seq_ids=query_seq_ids)
+    avg_list = avg_data_adaptive(feature_data, combined_pairs, seq_to_id, parquet_df)
     
     similarity_df = pd.DataFrame(data=avg_list[1:], columns=avg_list[0])
     
@@ -564,12 +477,9 @@ def convert_to_similarity_matrix(feature_data, metric_name, seq_to_id, reports_w
     renamed_columns = ['index'] + [str(col) for col in similarity_df.columns[1:]]
     similarity_df.columns = renamed_columns
     
-    print(f"\n{metric_name} similarity matrix: {len(similarity_df)} x {len(similarity_df.columns)-1}")
     return similarity_df, combined_pairs
 
-
 def create_ground_truth_dataframe(sample_df):
-    """Create ground truth DataFrame for evaluation"""
     rows = []
     for idx, query_row in sample_df.iterrows():
         query_id = query_row['query']
@@ -588,9 +498,7 @@ def create_ground_truth_dataframe(sample_df):
     gt_df = pd.DataFrame(rows)
     return gt_df
 
-
 def generate_similarity_csv(similarity_df, ground_truth_df, parquet_df, output_path, query_to_repo, query_to_valid_corpus, top_k=None, combined_pairs=None):
-    """Generate similarity matrix CSV"""
     query_to_gt = {}
     for idx, query_row in ground_truth_df.iterrows():
         group_id = query_row['group']
@@ -689,9 +597,7 @@ def generate_similarity_csv(similarity_df, ground_truth_df, parquet_df, output_p
     print(f"\n✓ Similarity matrix CSV saved to: {output_path}")
     return result_df
 
-
 def run_clustering_and_evaluate(similarity_df, ground_truth_df, eval_csv_path):
-    """Run SemCluster clustering and evaluate results"""
     print("\n" + "="*70)
     print("CLUSTERING & EVALUATION")
     print("="*70)
@@ -733,40 +639,29 @@ def run_clustering_and_evaluate(similarity_df, ground_truth_df, eval_csv_path):
     
     return cluster_result, mrr, map_score, hits_dict
 
-
 def main():
-    parser = argparse.ArgumentParser(description='SemCluster Evaluation (RESUME MODE)')
-    parser.add_argument('--dataset', type=str, default='FILTERED', 
-                       choices=['FILTERED', 'FULL'],
-                       help='Dataset to evaluate: FILTERED (images only) or FULL (all queries)')
+    parser = argparse.ArgumentParser(description='SemCluster Evaluation (OPTIMIZED FILTERED)')
     parser.add_argument('--n-queries', type=int, default=-1,
                        help='Number of queries to process (-1 for all available)')
-    parser.add_argument('--query-id', type=int, default=None,
-                       help='Specific query ID to process (overrides n-queries)')
     args = parser.parse_args()
     
     print("="*70)
-    print(f"SEMCLUSTER PARQUET EVALUATION - {args.dataset} DATASET - RESUME MODE")
+    print(f"SEMCLUSTER OPTIMIZED EVALUATION - FILTERED DATASET")
     print("="*70)
     
-    if args.dataset == 'FILTERED':
-        ground_truth_csv = 'Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv'
-        output_suffix = 'FILTERED'
-        require_images = True
-    else:  # FULL
-        ground_truth_csv = 'Overall - FULL_trimmed_year_1_corpus_with_gt.csv'
-        output_suffix = 'FULL'
-        require_images = False
+    ground_truth_csv = 'Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv'
+    output_suffix = 'FILTERED_NORMALIZED'
+    require_images = True
     
-    parquet_file = '/home/mhasan02/SemCluster-v2/bug_reports_with_images.parquet'
-    n_queries = args.n_queries if args.n_queries is not None else -1
+    parquet_file = 'bug_reports_with_images.parquet'
+    n_queries = args.n_queries
     
-    img_dir = f'file/pic_file_parquet_{args.dataset.lower()}'
-    xml_dir = f'file/xml_file_parquet_{args.dataset.lower()}'
-    eval_csv = f'file/label_file_parquet/evaluation_{args.dataset.lower()}.csv'
+    img_dir = f'file/pic_file_parquet_filtered'
+    xml_dir = f'file/xml_file_parquet_filtered'
+    eval_csv = f'file/label_file_parquet/evaluation_filtered.csv'
     similarity_csv_path = f'semcluster_similarity_matrix_{output_suffix}.csv'
+    cache_file = 'feature_cache_filtered.pkl'
     
-    # NOTE: Removed directory cleaning for RESUME mode
     os.makedirs(os.path.dirname(eval_csv), exist_ok=True)
     os.makedirs(img_dir, exist_ok=True)
     os.makedirs(xml_dir, exist_ok=True)
@@ -774,9 +669,6 @@ def main():
     print(f"\n[STEP 1] Loading queries from {ground_truth_csv}...")
     sample_df = load_sample_queries(ground_truth_csv, n_queries=n_queries, min_duplicates=1, require_images=require_images)
     print(f"  Selected {len(sample_df)} queries")
-    
-    if args.query_id is not None:
-        sample_df = sample_df[sample_df['query'] == args.query_id]
     
     report_ids_by_repo = {}
     query_to_valid_corpus = {}
@@ -789,18 +681,10 @@ def main():
             report_ids_by_repo[repo_name] = set()
         report_ids_by_repo[repo_name].add(query_id)
 
-        if require_images:
-            gt_ids = parse_id_list(row.get('ground_truth_issues_with_images', '[]'))
-        else:
-            gt_ids = parse_id_list(row.get('ground_truth', '[]'))
-
+        gt_ids = parse_id_list(row.get('ground_truth_issues_with_images', '[]'))
         report_ids_by_repo[repo_name].update(gt_ids)
 
-        if require_images:
-            corpus_ids = parse_id_list(row.get('corpus_issues_with_images', '[]'))
-        else:
-            corpus_ids = parse_id_list(row.get('corpus', '[]'))
-
+        corpus_ids = parse_id_list(row.get('corpus_issues_with_images', '[]'))
         report_ids_by_repo[repo_name].update(corpus_ids)
 
         query_key = (repo_name, query_id)
@@ -819,8 +703,8 @@ def main():
     print(f"\n[STEP 4] Creating evaluation CSV at {eval_csv}...")
     eval_df, id_to_cluster = prepare_evaluation_csv(sample_df, parquet_df, img_dir, eval_csv, id_to_seq)
     
-    print(f"\n[STEP 5] Running SemCluster feature extraction (RESUME MODE)...")
-    feature_data = run_semcluster_pipeline(
+    print(f"\n[STEP 5] Running SemCluster feature extraction (OPTIMIZED)...")
+    feature_data = run_semcluster_pipeline_optimized(
         eval_csv,
         img_dir,
         xml_dir,
@@ -828,7 +712,8 @@ def main():
         seq_to_id,
         parquet_df,
         sample_df,
-        query_to_valid_corpus
+        query_to_valid_corpus,
+        cache_file=cache_file
     )
     
     required_keys = ('st_list', 'ct_list', 'p_list', 'r_list')
@@ -842,8 +727,7 @@ def main():
         "Combined",
         seq_to_id,
         reports_with_images,
-        parquet_df,
-        sample_df=sample_df
+        parquet_df
     )
     
     print(f"\n[STEP 7] Preparing ground truth...")
@@ -873,7 +757,6 @@ def main():
     print("\n" + "="*70)
     print("EVALUATION COMPLETE")
     print("="*70)
-
 
 if __name__ == '__main__':
     main()

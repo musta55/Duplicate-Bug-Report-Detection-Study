@@ -299,7 +299,7 @@ def cal_sim_matrix(file_path, text_feature_list, sample_df=None, query_to_valid_
     # CACHING IMPLEMENTATION
     # Derive cache filename from input CSV path to separate FILTERED vs FULL caches
     base_name = os.path.splitext(os.path.basename(file_path))[0]
-    cache_file = f"text_features_cache_{base_name}.pkl"
+    cache_file = f"cache/text_features_cache_{base_name}.pkl"
     
     if os.path.exists(cache_file):
         print(f"  → [CACHE] Found {cache_file}, loading cached text features...")

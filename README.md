@@ -8,25 +8,12 @@ Empirical study examining whether including images (screenshots) enhances duplic
 
 ## Key Findings
 
-### Impact of Images on Retrieval Performance
-
-Comparing queries **with images** vs **without images** in the FULL dataset:
-
-| Metric | With Images (103 queries) | Without Images (618 queries) | Improvement |
-|--------|---------------------------|------------------------------|-------------|
-| MRR | 0.1892 | 0.0769 | **+146%** |
-| HITS@1 | 15.5% | 5.7% | **+171%** |
-| HITS@5 | 22.3% | 7.3% | **+205%** |
-| HITS@10 | 22.3% | 8.6% | **+159%** |
-
-**Conclusion:** Images provide approximately **2.5× improvement** in duplicate detection performance.
-
 ### Overall Performance
 
-| Dataset | Queries | MRR | HITS@1 | HITS@10 |
-|---------|---------|-----|--------|---------|
-| FILTERED | 92 (100% with images) | 0.1725 | 9.8% | 29.3% |
-| FULL | 1034 (10% with images) | 0.0918 | 7.0% | 10.7% |
+| Dataset | Queries | MRR | MAP | HITS@1 | HITS@5 | HITS@10 |
+|---------|---------|-----|-----|--------|--------|---------|
+| FILTERED | 125 | 0.1703 | 0.1647 | 10.40% | 20.80% | 32.80% |
+| FULL | 2323 | 0.0845 | 0.0731 | 4.74% | 9.73% | 14.59% |
 
 ## System Architecture
 
@@ -59,9 +46,8 @@ Simple averaging with adaptive weights:
 ├── main.py                      # Original evaluation script
 ├── metrics.py                   # Evaluation metrics (MRR, HITS@k)
 │
-├── run_parquet_evaluation.py    # Main evaluation script (supports FILTERED/FULL)
-├── run_filtered_eval.sh         # Run FILTERED dataset evaluation
-├── run_full_eval.sh             # Run FULL dataset evaluation
+├── generate_embeddings.py       # Script to generate embeddings
+├── run_evaluation_from_embeddings.py # Script to run evaluation from embeddings
 │
 ├── image/                       # Image feature extraction
 │   ├── vgg16.py                # VGG16 visual features (GPU-accelerated)
@@ -81,8 +67,8 @@ Simple averaging with adaptive weights:
 ├── Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv  # FILTERED ground truth
 ├── Overall - FULL_trimmed_year_1_corpus_with_gt.csv      # FULL ground truth
 │
-├── semcluster_similarity_matrix_FILTERED.csv  # FILTERED results (8,372 rows)
-└── semcluster_similarity_matrix_FULL.csv      # FULL results (528,896 rows)
+├── semcluster_similarity_matrix_FILTERED.csv  # FILTERED results
+└── semcluster_similarity_matrix_FULL.csv      # FULL results
 ```
 
 ## Setup
@@ -124,29 +110,31 @@ The parquet file should contain columns:
 
 ## Usage
 
-### Run FILTERED Evaluation (92 reports, all with images)
+### 1. Generate Embeddings (Optional)
+
+If embeddings are not already generated in `embeddings/`:
 
 ```bash
-bash run_filtered_eval.sh
+python generate_embeddings.py
+```
+
+### 2. Run Evaluation
+
+**Run FILTERED Evaluation (260 queries)**
+
+```bash
+python run_evaluation_from_embeddings.py --dataset FILTERED
 ```
 
 Output: `semcluster_similarity_matrix_FILTERED.csv`
 
-### Run FULL Evaluation (1034 queries, mixed)
+**Run FULL Evaluation (1961 queries)**
 
 ```bash
-bash run_full_eval.sh
+python run_evaluation_from_embeddings.py --dataset FULL
 ```
 
 Output: `semcluster_similarity_matrix_FULL.csv`
-
-Expected runtime: ~25 hours on NVIDIA A40 GPU
-
-### Custom Evaluation
-
-```bash
-python run_parquet_evaluation.py --dataset {FILTERED|FULL}
-```
 
 ## Results Format
 
@@ -166,7 +154,7 @@ Output CSV contains pairwise similarity scores:
 1. **VGG16 Domain Mismatch**: ImageNet weights trained on natural images, not UI screenshots
 2. **Simple Fusion**: Equal-weight averaging doesn't learn optimal feature combination
 3. **Poor Discrimination**: All similarity scores cluster around 0.96 (poor separation between duplicates and non-duplicates)
-4. **Absolute Performance**: Even with images, HITS@10 is only 22% (78% failure rate)
+4. **Absolute Performance**: HITS@10 remains low (25.38% for FILTERED, 14.99% for FULL)
 
 ## Future Work
 

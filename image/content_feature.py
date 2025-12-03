@@ -370,7 +370,7 @@ def getCTdis(xml_dir, img_dir, label_csv, sample_df=None, query_to_valid_corpus=
     sys.stdout.flush()
 
     # Check for checkpoint file
-    checkpoint_file = 'content_features_checkpoint.pkl'
+    checkpoint_file = 'cache/content_features_checkpoint.pkl'
     start_idx = 0
     all_dist_list = [title]
     global_content_distance_max = 0

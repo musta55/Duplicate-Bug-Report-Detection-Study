@@ -1,7 +1,7 @@
 import pandas as pd
 import pyarrow.parquet as pq
 
-parquet_file = '/home/mhasan02/SemCluster-v2/bug_reports_with_images.parquet'
+parquet_file = 'bug_reports_with_images.parquet'
 table = pq.read_table(parquet_file)
 df = table.to_pandas()
 

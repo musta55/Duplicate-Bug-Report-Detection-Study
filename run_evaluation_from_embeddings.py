@@ -258,30 +258,44 @@ def main():
         'content': {'min': 1e9, 'max': 0}
     }
     
-    # Use a subset of pairs for stats to save time
-    sample_pairs = list(needed_pairs)
-    if len(sample_pairs) > 2000:
-        import random
-        sample_pairs = random.sample(sample_pairs, 2000)
+    # Improved Sampling for Stats
+    # We need to ensure we sample enough pairs that HAVE images to get valid stats for struct/content
+    import random
+    
+    # Sample keys from embeddings directly to ensure coverage
+    text_keys = list(text_emb.keys())
+    struct_keys = list(struct_emb.keys())
+    content_keys = list(content_emb.keys())
+    
+    # Sample 2000 pairs for each modality
+    n_samples = 2000
+    
+    # Text Stats
+    for _ in range(n_samples):
+        k1 = random.choice(text_keys)
+        k2 = random.choice(text_keys)
+        if k1 == k2: continue
         
-    for k1, k2 in sample_pairs:
-        # Text
-        if k1 in text_emb and k2 in text_emb:
-            # Problem
-            d = np.linalg.norm(text_emb[k1]['problem_vector'] - text_emb[k2]['problem_vector'])
-            stats['prob']['min'] = min(stats['prob']['min'], d)
-            stats['prob']['max'] = max(stats['prob']['max'], d)
+        # Problem
+        d = np.linalg.norm(text_emb[k1]['problem_vector'] - text_emb[k2]['problem_vector'])
+        stats['prob']['min'] = min(stats['prob']['min'], d)
+        stats['prob']['max'] = max(stats['prob']['max'], d)
+        
+        # Procedure
+        if text_emb[k1]['procedure_vectors'] and text_emb[k2]['procedure_vectors']:
+            v1 = text_emb[k1]['procedure_vectors'][0]
+            v2 = text_emb[k2]['procedure_vectors'][0]
+            d = np.linalg.norm(v1 - v2)
+            stats['proc']['min'] = min(stats['proc']['min'], d)
+            stats['proc']['max'] = max(stats['proc']['max'], d)
             
-            # Procedure (Step)
-            if text_emb[k1]['procedure_vectors'] and text_emb[k2]['procedure_vectors']:
-                v1 = text_emb[k1]['procedure_vectors'][0]
-                v2 = text_emb[k2]['procedure_vectors'][0]
-                d = np.linalg.norm(v1 - v2)
-                stats['proc']['min'] = min(stats['proc']['min'], d)
-                stats['proc']['max'] = max(stats['proc']['max'], d)
-        
-        # Structure
-        if k1 in struct_emb and k2 in struct_emb:
+    # Structure Stats
+    if struct_keys:
+        for _ in range(n_samples):
+            k1 = random.choice(struct_keys)
+            k2 = random.choice(struct_keys)
+            if k1 == k2: continue
+            
             try:
                 apted = APTED(struct_emb[k1], struct_emb[k2])
                 d = apted.compute_edit_distance()
@@ -289,8 +303,13 @@ def main():
                 stats['struct']['max'] = max(stats['struct']['max'], d)
             except: pass
             
-        # Content
-        if k1 in content_emb and k2 in content_emb:
+    # Content Stats
+    if content_keys:
+        for _ in range(n_samples):
+            k1 = random.choice(content_keys)
+            k2 = random.choice(content_keys)
+            if k1 == k2: continue
+            
             d = content_dist(content_emb[k1], content_emb[k2])
             stats['content']['min'] = min(stats['content']['min'], d)
             stats['content']['max'] = max(stats['content']['max'], d)
@@ -367,7 +386,7 @@ def main():
             })
             
     out_df = pd.DataFrame(rows)
-    out_path = f'semcluster_similarity_matrix_{args.dataset}_EMBEDDINGS.csv'
+    out_path = f'semcluster_similarity_matrix_{args.dataset}.csv'
     out_df.to_csv(out_path, index=False)
     print(f"Saved to {out_path}")
     

@@ -1,1 +1,0 @@
-/home/mhasan02/.bashrc: line 199: 869415 Killed                  "$CONDA_EXE" $_CE_M $_CE_CONDA "$cmd" "$@"

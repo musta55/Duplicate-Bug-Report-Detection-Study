@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import pyarrow.parquet as pq
 
-PARQUET_FILE = '/home/mhasan02/SemCluster-v2/bug_reports_with_images.parquet'
+PARQUET_FILE = 'bug_reports_with_images.parquet'
 XML_DIR = 'file/xml_file_parquet_full/'
 
 print("Reading Parquet...")

@@ -848,7 +848,7 @@ def main():
         require_images = False
         print("  Mode: FULL - All queries (image + text-only)")
     
-    parquet_file = '/home/mhasan02/SemCluster-v2/bug_reports_with_images.parquet'
+    parquet_file = 'bug_reports_with_images.parquet'
     n_queries = args.n_queries if args.n_queries is not None else -1
     
     # Output directories

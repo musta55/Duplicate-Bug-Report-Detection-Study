@@ -18,7 +18,7 @@ import image.vgg16 as vgg16
 
 # Configuration
 TEXT_MODEL_PATH = 'text/text_feature_extraction/bugdata_format_model_100'
-PARQUET_FILE = '/home/mhasan02/SemCluster-v2/bug_reports_with_images.parquet'
+PARQUET_FILE = 'bug_reports_with_images.parquet'
 GT_CSV = 'Overall - FULL_trimmed_year_1_corpus_with_gt.csv'
 IMG_DIR = 'file/pic_file_parquet_full/'
 XML_DIR = 'file/xml_file_parquet_full/'
