@@ -192,7 +192,72 @@ def process_pair(pair):
         
     if scores:
         avg_score = sum(scores) / len(scores)
-        return (key_tuple, rev_key_tuple, avg_score)
+        # Map scores back to components for return
+        # Order of appending: BB, RS, SF, CF (if available)
+        # This is tricky because some might be missing.
+        # Let's reconstruct explicitly.
+        
+        comps = {}
+        
+        # Text (BB, RS)
+        if k1 in text_emb and k2 in text_emb:
+            # Re-calculate or capture from above? 
+            # Better to capture variables.
+            # Let's refactor this function slightly to be cleaner.
+            pass
+            
+    return None
+
+def process_pair(pair):
+    k1, k2 = pair
+    
+    # Parse keys
+    r1, i1 = k1.split(':')
+    r2, i2 = k2.split(':')
+    key_tuple = (r1, int(i1), int(i2))
+    rev_key_tuple = (r2, int(i2), int(i1))
+    
+    scores = []
+    comps = {'BB': None, 'RS': None, 'SF': None, 'CF': None}
+    
+    # Text
+    if k1 in text_emb and k2 in text_emb:
+        # Problem
+        prob_dist = np.linalg.norm(text_emb[k1]['problem_vector'] - text_emb[k2]['problem_vector'])
+        pd_norm = (prob_dist - stats['prob']['min']) / (stats['prob']['max'] - stats['prob']['min'])
+        scores.append(pd_norm)
+        comps['BB'] = pd_norm
+        
+        # Procedure
+        rd = dtw_distance_vectors(text_emb[k1]['procedure_vectors'], text_emb[k2]['procedure_vectors'],
+                                stats['proc']['min'], stats['proc']['max'])
+        scores.append(rd)
+        comps['RS'] = rd
+        
+        # SemCluster Constraints
+        if pd_norm < 0.3: # Must link check (partial)
+            pass
+            
+    # Structure
+    if k1 in struct_emb and k2 in struct_emb:
+        try:
+            apted = APTED(struct_emb[k1], struct_emb[k2])
+            sd = apted.compute_edit_distance()
+            sd_norm = (sd - stats['struct']['min']) / (stats['struct']['max'] - stats['struct']['min'])
+            scores.append(sd_norm)
+            comps['SF'] = sd_norm
+        except: pass
+        
+    # Content
+    if k1 in content_emb and k2 in content_emb:
+        cd = content_dist(content_emb[k1], content_emb[k2])
+        cd_norm = (cd - stats['content']['min']) / (stats['content']['max'] - stats['content']['min'])
+        scores.append(cd_norm)
+        comps['CF'] = cd_norm
+        
+    if scores:
+        avg_score = sum(scores) / len(scores)
+        return (key_tuple, rev_key_tuple, avg_score, comps)
     return None
 
 def main():
@@ -334,9 +399,9 @@ def main():
         
     for res in results:
         if res:
-            key_tuple, rev_key_tuple, avg_score = res
-            combined_pairs[key_tuple] = avg_score
-            combined_pairs[rev_key_tuple] = avg_score
+            key_tuple, rev_key_tuple, avg_score, comps = res
+            combined_pairs[key_tuple] = (avg_score, comps)
+            combined_pairs[rev_key_tuple] = (avg_score, comps)
             
     # 3. Generate Output CSV
     print("Generating output CSV...")
@@ -369,21 +434,35 @@ def main():
             c_key = f"{c_repo}:{cid}"
             if c_key == q_key: continue
             
-            dist = combined_pairs.get((repo, qid, cid), 1.0)
-            similarities.append((c_key, dist))
+            dist_data = combined_pairs.get((repo, qid, cid))
+            if dist_data:
+                dist, comps = dist_data
+            else:
+                dist = 1.0
+                comps = {'BB': None, 'RS': None, 'SF': None, 'CF': None}
+            
+            similarities.append((c_key, dist, comps))
             
         similarities.sort(key=lambda x: x[1])
         
-        for rank, (c_key, dist) in enumerate(similarities, 1):
+        for rank, (c_key, dist, comps) in enumerate(similarities, 1):
             c_is_gt = 1 if c_key in gt_set else 0
-            rows.append({
+            
+            row_dict = {
                 'Project': repo,
                 'query': qid,
                 'corpus': c_key,
                 'score': round(dist, 6),
                 'rank': rank,
                 'c_is_gt': c_is_gt
-            })
+            }
+            
+            # Add components
+            for k in ['BB', 'RS', 'SF', 'CF']:
+                val = comps.get(k)
+                row_dict[k] = round(val, 6) if val is not None else ''
+                
+            rows.append(row_dict)
             
     out_df = pd.DataFrame(rows)
     out_path = f'semcluster_similarity_matrix_{args.dataset}.csv'
@@ -392,8 +471,9 @@ def main():
     
     # Calculate Metrics
     print("Calculating metrics...")
-    from calculate_filtered_metrics_v2 import calculate_metrics_from_result_csv
-    calculate_metrics_from_result_csv(out_path)
+    # from calculate_filtered_metrics_v2 import calculate_metrics_from_result_csv
+    # calculate_metrics_from_result_csv(out_path)
+    print("Metrics calculation skipped (module missing).")
 
 if __name__ == '__main__':
     main()
