@@ -1,16 +1,4 @@
 #!/usr/bin/env python3
-"""
-RESUME SemCluster Evaluation using Parquet Dataset
-
-This script is a modified version of run_parquet_evaluation.py designed to RESUME
-processing where it left off.
-
-DIFFERENCES FROM ORIGINAL:
-1. Does NOT delete existing image/xml directories.
-2. Skips extracting images that already exist.
-3. Relies on structure_feature.py's built-in caching to skip existing XMLs.
-"""
-
 import os
 import sys
 import argparse
@@ -27,7 +15,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core import cluster
 import image.image_main as image_main
 import text.text_main as text_main
-from core.main import calculate_retrieval_metrics, debug_retrieval
+from core.semcluster import calculate_retrieval_metrics, debug_retrieval
 
 
 def load_sample_queries(csv_path, n_queries=10, min_duplicates=2, require_images=True):

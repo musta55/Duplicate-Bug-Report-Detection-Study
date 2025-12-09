@@ -1,13 +1,4 @@
 #!/usr/bin/env python3
-"""
-OPTIMIZED SemCluster Evaluation for FILTERED Dataset
-With Normalized VGG16 and Caching
-
-This script:
-1. Runs on FILTERED dataset.
-2. Caches Structure and Text features to disk to avoid re-computation.
-3. Uses Normalized VGG16 features for Content distance.
-"""
 
 import os
 import sys
@@ -26,7 +17,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core import cluster
 import image.image_main as image_main
 import text.text_main as text_main
-from core.main import calculate_retrieval_metrics, debug_retrieval
+from core.semcluster import calculate_retrieval_metrics, debug_retrieval
 
 # Monkey patch image.vgg16.getdistance to use normalize=True by default
 import image.vgg16

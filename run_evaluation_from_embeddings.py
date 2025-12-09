@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 # Import SemCluster modules for some utilities
 from core import cluster
-from core.main import calculate_retrieval_metrics, debug_retrieval
+from core.semcluster import calculate_retrieval_metrics, debug_retrieval
 
 # Global variables for worker processes
 text_emb = None
@@ -471,9 +471,10 @@ def main():
     
     # Calculate Metrics
     print("Calculating metrics...")
-    # from calculate_filtered_metrics_v2 import calculate_metrics_from_result_csv
-    # calculate_metrics_from_result_csv(out_path)
-    print("Metrics calculation skipped (module missing).")
+    sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'runtime_verification'))
+    from calculate_filtered_metrics_v2 import calculate_metrics_from_result_csv
+    calculate_metrics_from_result_csv(out_path)
+    # print("Metrics calculation skipped (module missing).")
 
 if __name__ == '__main__':
     main()

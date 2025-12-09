@@ -23,9 +23,9 @@ SemCluster combines four types of features:
 
 1. **Structure Features**: UI layout similarity from XML layouts
 2. **VGG16 (Image Content)**: Deep visual features from screenshots
-   - Uses ImageNet pretrained weights (original paper weights unavailable)
+   - Uses ImageNet pretrained weights
 3. **Word2Vec + DTW**: Text similarity for bug descriptions and reproduction steps
-4. **TextCNN**: Deep text embeddings (added in this study)
+4. **TextCNN**: Deep text embeddings
 
 ### Feature Fusion
 
@@ -41,13 +41,19 @@ Simple averaging with adaptive weights:
 ├── requirements.txt             # Python dependencies
 ├── environment.yml              # Conda environment specification
 │
-├── cluster.py                   # Clustering algorithms
-├── configure.py                 # Configuration utilities
-├── main.py                      # Original evaluation script
-├── metrics.py                   # Evaluation metrics (MRR, HITS@k)
+├── core/                        # Core logic and utilities
+│   ├── cluster.py               # Clustering algorithms
+│   ├── configure.py             # Configuration utilities
+│   ├── semcluster.py            # Core Logic
+│   └── metrics.py               # Evaluation metrics (MRR, HITS@k)
+│
+├── analytics/                   # Analysis scripts
 │
 ├── embeddings/
 │   └── generate_embeddings.py   # Script to generate embeddings
+│
+├── runtime_verification/        # Evaluation scripts
+│
 ├── run_evaluation_from_embeddings.py # Script to run evaluation from embeddings
 │
 ├── image/                       # Image feature extraction
@@ -166,7 +172,7 @@ Output CSV contains pairwise similarity scores:
 
 ## Citation
 
-Original SemCluster paper:
+SemCluster paper:
 ```
 Liang, B., et al. (Year). "SemCluster: Clustering of Imperative Programming Language 
 Fragments using Multi-channel Sequence-to-Sequence Model"

@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-"""Test script to verify corpus filtering is working correctly"""
-
 import pandas as pd
 
 def parse_id_list(id_string):

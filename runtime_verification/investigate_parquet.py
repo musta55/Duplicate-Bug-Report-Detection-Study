@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-"""
-Investigate parquet file structure
-"""
 
 import pyarrow.parquet as pq
 import pandas as pd

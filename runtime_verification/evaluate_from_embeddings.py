@@ -10,7 +10,7 @@ from sklearn.preprocessing import normalize
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core import cluster
-from core.main import calculate_retrieval_metrics
+from core.semcluster import calculate_retrieval_metrics
 
 # Configuration
 EMBEDDING_DIR = 'embeddings/'

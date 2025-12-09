@@ -1,17 +1,4 @@
 #!/usr/bin/env python3
-"""
-SemCluster Evaluation using Parquet Dataset
-
-This script:
-1. Loads queries from FILTERED/FULL CSV with ground truth
-2. Extracts images and text from parquet file
-3. Runs SemCluster's feature extraction and clustering
-4. Evaluates duplicate detection performance (MRR, MAP, HITS@k)
-
-Supports:
-- FILTERED dataset: Queries with images only (92 reports)
-- FULL dataset: All queries including text-only (2323 reports)
-"""
 
 import os
 import sys
@@ -29,7 +16,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core import cluster
 import image.image_main as image_main
 import text.text_main as text_main
-from core.main import calculate_retrieval_metrics, debug_retrieval
+from core.semcluster import calculate_retrieval_metrics, debug_retrieval
 
 
 def load_sample_queries(csv_path, n_queries=10, min_duplicates=2, require_images=True):
