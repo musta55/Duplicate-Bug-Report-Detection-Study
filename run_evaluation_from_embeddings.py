@@ -281,10 +281,10 @@ def main():
     
     # Load GT
     if args.dataset == 'FILTERED':
-        gt_csv = 'Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv'
+        gt_csv = 'Dataset/Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv'
         require_images = True
     else:
-        gt_csv = 'Overall - FULL_trimmed_year_1_corpus_with_gt.csv'
+        gt_csv = 'Dataset/Overall - FULL_trimmed_year_1_corpus_with_gt.csv'
         require_images = False
         
     sample_df = load_sample_queries(gt_csv, require_images=require_images)
@@ -465,7 +465,7 @@ def main():
             rows.append(row_dict)
             
     out_df = pd.DataFrame(rows)
-    out_path = f'semcluster_similarity_matrix_{args.dataset}.csv'
+    out_path = f'output/semcluster_similarity_matrix_{args.dataset}.csv'
     out_df.to_csv(out_path, index=False)
     print(f"Saved to {out_path}")
     

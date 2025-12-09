@@ -4,7 +4,7 @@
 echo "========================================================================"
 echo "SEMCLUSTER FULL EVALUATION (RESUME MODE)"
 echo "========================================================================"
-echo "Dataset: Overall - FULL_trimmed_year_1_corpus_with_gt.csv"
+echo "Dataset: Dataset/Overall - FULL_trimmed_year_1_corpus_with_gt.csv"
 echo "Script: resume_parquet_evaluation.py"
 echo "========================================================================"
 

@@ -5,7 +5,7 @@ import pandas as pd
 
 # Load parquet
 print("Loading parquet file...")
-table = pq.read_table('bug_reports_with_images.parquet')
+table = pq.read_table('Dataset/bug_reports_with_images.parquet')
 df = table.to_pandas()
 
 print(f"\n{'='*70}")

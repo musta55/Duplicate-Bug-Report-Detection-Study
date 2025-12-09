@@ -828,24 +828,24 @@ def main():
     
     # Configuration based on dataset type
     if args.dataset == 'FILTERED':
-        ground_truth_csv = 'Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv'
+        ground_truth_csv = 'Dataset/Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv'
         output_suffix = 'FILTERED'
         require_images = True
         print("  Mode: FILTERED - Queries with images only")
     else:  # FULL
-        ground_truth_csv = 'Overall - FULL_trimmed_year_1_corpus_with_gt.csv'
+        ground_truth_csv = 'Dataset/Overall - FULL_trimmed_year_1_corpus_with_gt.csv'
         output_suffix = 'FULL'
         require_images = False
         print("  Mode: FULL - All queries (image + text-only)")
     
-    parquet_file = 'bug_reports_with_images.parquet'
+    parquet_file = 'Dataset/bug_reports_with_images.parquet'
     n_queries = args.n_queries if args.n_queries is not None else -1
     
     # Output directories
     img_dir = f'file/pic_file_parquet_{args.dataset.lower()}'
     xml_dir = f'file/xml_file_parquet_{args.dataset.lower()}'
     eval_csv = f'file/label_file_parquet/evaluation_{args.dataset.lower()}.csv'
-    similarity_csv_path = f'semcluster_similarity_matrix_{output_suffix}.csv'
+    similarity_csv_path = f'output/semcluster_similarity_matrix_{output_suffix}.csv'
     
     # Clean directories to avoid stale data
     if os.path.exists(img_dir):

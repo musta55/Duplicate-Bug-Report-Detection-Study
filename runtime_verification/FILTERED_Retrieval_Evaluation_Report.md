@@ -38,7 +38,7 @@ The following table represents a sample of the ground truth data used for evalua
 | Input | Source | Description |
 |-------|--------|-------------|
 | Similarity Matrix | SemCluster Pipeline | Matrix of similarity scores (0-1) between query and corpus reports. Higher scores indicate higher similarity. Generated from 4 features: structure, content, problem text, and reproduction text. |
-| Ground Truth | Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv | Maps each query to its known duplicate reports. Extracted from the 'ground_truth' column in the FILTERED dataset. |
+| Ground Truth | Dataset/Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv | Maps each query to its known duplicate reports. Extracted from the 'ground_truth' column in the FILTERED dataset. |
 
 #### Dataset Statistics
 - Total query reports: 125

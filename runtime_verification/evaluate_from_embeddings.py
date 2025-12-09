@@ -14,8 +14,8 @@ from core.semcluster import calculate_retrieval_metrics
 
 # Configuration
 EMBEDDING_DIR = 'embeddings/'
-GT_CSV = 'Overall - FULL_trimmed_year_1_corpus_with_gt.csv'
-OUTPUT_CSV = 'semcluster_similarity_matrix_FULL_retrieval.csv'
+GT_CSV = 'Dataset/Overall - FULL_trimmed_year_1_corpus_with_gt.csv'
+OUTPUT_CSV = 'output/semcluster_similarity_matrix_FULL_retrieval.csv'
 
 def load_embeddings():
     print("Loading embeddings...")

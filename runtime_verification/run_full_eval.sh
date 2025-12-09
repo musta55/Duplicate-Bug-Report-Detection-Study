@@ -18,7 +18,7 @@ echo "========================================================================"
 echo "SEMCLUSTER FULL EVALUATION (TMUX)"
 echo "========================================================================"
 echo "Session name: $SESSION_NAME"
-echo "Dataset: Overall - FULL_trimmed_year_1_corpus_with_gt.csv"
+echo "Dataset: Dataset/Overall - FULL_trimmed_year_1_corpus_with_gt.csv"
 echo "Queries: ALL (~2323 queries, including text-only)"
 echo "Expected time: 2-3 days (48-72 hours)"
 echo "========================================================================"
@@ -45,7 +45,7 @@ tmux send-keys -t $SESSION_NAME "echo '========================================'
 tmux send-keys -t $SESSION_NAME "echo 'FULL EVALUATION COMPLETE'" C-m
 tmux send-keys -t $SESSION_NAME "echo 'End time: \$(date)'" C-m
 tmux send-keys -t $SESSION_NAME "echo '========================================'" C-m
-tmux send-keys -t $SESSION_NAME "echo 'Output: semcluster_similarity_matrix_FULL.csv'" C-m
+tmux send-keys -t $SESSION_NAME "echo 'Output: output/semcluster_similarity_matrix_FULL.csv'" C-m
 tmux send-keys -t $SESSION_NAME "echo ''" C-m
 tmux send-keys -t $SESSION_NAME "echo 'Session will remain open. To close: tmux kill-session -t $SESSION_NAME'" C-m
 

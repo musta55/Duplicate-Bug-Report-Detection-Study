@@ -643,17 +643,17 @@ def main():
     print(f"SEMCLUSTER OPTIMIZED EVALUATION - FILTERED DATASET")
     print("="*70)
     
-    ground_truth_csv = 'Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv'
+    ground_truth_csv = 'Dataset/Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv'
     output_suffix = 'FILTERED_NORMALIZED'
     require_images = True
     
-    parquet_file = 'bug_reports_with_images.parquet'
+    parquet_file = 'Dataset/bug_reports_with_images.parquet'
     n_queries = args.n_queries
     
     img_dir = f'file/pic_file_parquet_filtered'
     xml_dir = f'file/xml_file_parquet_filtered'
     eval_csv = f'file/label_file_parquet/evaluation_filtered.csv'
-    similarity_csv_path = f'semcluster_similarity_matrix_{output_suffix}.csv'
+    similarity_csv_path = f'output/semcluster_similarity_matrix_{output_suffix}.csv'
     cache_file = 'feature_cache_filtered.pkl'
     
     os.makedirs(os.path.dirname(eval_csv), exist_ok=True)

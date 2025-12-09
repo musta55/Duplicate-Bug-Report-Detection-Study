@@ -21,8 +21,8 @@ import image.vgg16 as vgg16
 
 # Configuration
 TEXT_MODEL_PATH = os.path.join(project_root, 'text/text_feature_extraction/bugdata_format_model_100')
-PARQUET_FILE = os.path.join(project_root, 'bug_reports_with_images.parquet')
-GT_CSV = os.path.join(project_root, 'Overall - FULL_trimmed_year_1_corpus_with_gt.csv')
+PARQUET_FILE = os.path.join(project_root, 'Dataset/bug_reports_with_images.parquet')
+GT_CSV = os.path.join(project_root, 'Dataset/Overall - FULL_trimmed_year_1_corpus_with_gt.csv')
 IMG_DIR = os.path.join(project_root, 'file/pic_file_parquet_full/')
 XML_DIR = os.path.join(project_root, 'file/xml_file_parquet_full/')
 OUTPUT_DIR = os.path.join(project_root, 'embeddings/')

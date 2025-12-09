@@ -1,7 +1,7 @@
 import pyarrow.parquet as pq
 import pandas as pd
 
-parquet_file = 'bug_reports_with_images.parquet'
+parquet_file = 'Dataset/bug_reports_with_images.parquet'
 table = pq.read_table(parquet_file)
 df = table.to_pandas()
 

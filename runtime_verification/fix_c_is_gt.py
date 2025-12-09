@@ -6,9 +6,9 @@ def parse_ground_truth(gt_str):
     gt_str = gt_str.strip('[]')
     return set(int(x.strip()) for x in gt_str.split('|') if x.strip().isdigit())
 
-gt_file = 'Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv'
-sim_file = 'semcluster_similarity_matrix_FILTERED.csv'
-out_file = 'semcluster_similarity_matrix_FILTERED_with_gt.csv'
+gt_file = 'Dataset/Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv'
+sim_file = 'output/semcluster_similarity_matrix_FILTERED.csv'
+out_file = 'output/semcluster_similarity_matrix_FILTERED_with_gt.csv'
 
 gt_df = pd.read_csv(gt_file)
 # Map: (query as int) -> set of ground truth corpus IDs (from ground_truth column only)

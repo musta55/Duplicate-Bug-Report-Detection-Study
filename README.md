@@ -71,11 +71,14 @@ Simple averaging with adaptive weights:
 │       ├── bugdata_format_model_100  # Pre-trained Word2Vec model
 │       └── runs/TextCNN_model/ # Pre-trained TextCNN checkpoints
 │
-├── Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv  # FILTERED ground truth
-├── Overall - FULL_trimmed_year_1_corpus_with_gt.csv      # FULL ground truth
+├── Dataset/
+│   ├── Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv  # FILTERED ground truth
+│   ├── Overall - FULL_trimmed_year_1_corpus_with_gt.csv      # FULL ground truth
+│   └── bug_reports_with_images.parquet
 │
-├── semcluster_similarity_matrix_FILTERED.csv  # FILTERED results
-└── semcluster_similarity_matrix_FULL.csv      # FULL results
+├── output/
+│   ├── semcluster_similarity_matrix_FILTERED.csv  # FILTERED results
+│   └── semcluster_similarity_matrix_FULL.csv      # FULL results
 ```
 
 ## Setup
@@ -133,7 +136,7 @@ python embeddings/generate_embeddings.py
 python run_evaluation_from_embeddings.py --dataset FILTERED
 ```
 
-Output: `semcluster_similarity_matrix_FILTERED.csv`
+Output: `output/semcluster_similarity_matrix_FILTERED.csv`
 
 **Run FULL Evaluation (1961 queries)**
 
@@ -141,7 +144,7 @@ Output: `semcluster_similarity_matrix_FILTERED.csv`
 python run_evaluation_from_embeddings.py --dataset FULL
 ```
 
-Output: `semcluster_similarity_matrix_FULL.csv`
+Output: `output/semcluster_similarity_matrix_FULL.csv`
 
 ## Results Format
 

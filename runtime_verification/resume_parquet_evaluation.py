@@ -741,21 +741,21 @@ def main():
     print("="*70)
     
     if args.dataset == 'FILTERED':
-        ground_truth_csv = 'Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv'
+        ground_truth_csv = 'Dataset/Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv'
         output_suffix = 'FILTERED'
         require_images = True
     else:  # FULL
-        ground_truth_csv = 'Overall - FULL_trimmed_year_1_corpus_with_gt.csv'
+        ground_truth_csv = 'Dataset/Overall - FULL_trimmed_year_1_corpus_with_gt.csv'
         output_suffix = 'FULL'
         require_images = False
     
-    parquet_file = 'bug_reports_with_images.parquet'
+    parquet_file = 'Dataset/bug_reports_with_images.parquet'
     n_queries = args.n_queries if args.n_queries is not None else -1
     
     img_dir = f'file/pic_file_parquet_{args.dataset.lower()}'
     xml_dir = f'file/xml_file_parquet_{args.dataset.lower()}'
     eval_csv = f'file/label_file_parquet/evaluation_{args.dataset.lower()}.csv'
-    similarity_csv_path = f'semcluster_similarity_matrix_{output_suffix}.csv'
+    similarity_csv_path = f'output/semcluster_similarity_matrix_{output_suffix}.csv'
     
     # NOTE: Removed directory cleaning for RESUME mode
     os.makedirs(os.path.dirname(eval_csv), exist_ok=True)

@@ -82,5 +82,5 @@ def verify_csv_claims(file_path, dataset_type):
             print(f"    Error parsing row {idx}: {e}")
 
 if __name__ == "__main__":
-    verify_csv_claims("Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv", "FILTERED")
-    verify_csv_claims("Overall - FULL_trimmed_year_1_corpus_with_gt.csv", "FULL")
+    verify_csv_claims("Dataset/Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv", "FILTERED")
+    verify_csv_claims("Dataset/Overall - FULL_trimmed_year_1_corpus_with_gt.csv", "FULL")

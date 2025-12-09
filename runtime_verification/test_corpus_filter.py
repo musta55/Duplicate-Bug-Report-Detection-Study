@@ -16,7 +16,7 @@ def main():
     print("="*70)
     
     # Load ground truth
-    gt_df = pd.read_csv('Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv')
+    gt_df = pd.read_csv('Dataset/Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv')
     
     # Test with Aegis query 450
     aegis_450 = gt_df[gt_df['query'] == 450].iloc[0]
