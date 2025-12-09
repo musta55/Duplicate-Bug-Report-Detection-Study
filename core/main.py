@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import cluster
+from . import cluster
 import image.image_main as img
 import text.text_main as txt
 

@@ -20,11 +20,14 @@ import pyarrow.parquet as pq
 from PIL import Image
 from io import BytesIO
 
+# Add root directory to path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # Import SemCluster modules
-import cluster
+from core import cluster
 import image.image_main as image_main
 import text.text_main as text_main
-from main import calculate_retrieval_metrics, debug_retrieval
+from core.main import calculate_retrieval_metrics, debug_retrieval
 
 
 def load_sample_queries(csv_path, n_queries=10, min_duplicates=2, require_images=True):

@@ -11,18 +11,21 @@ from tensorflow.keras.applications.vgg16 import preprocess_input
 import xml.dom.minidom as xmldom
 from apted import helpers
 
-# Add current directory to path
-sys.path.append(os.getcwd())
+# Add project root to path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+if project_root not in sys.path:
+    sys.path.append(project_root)
 
 import image.vgg16 as vgg16
 
 # Configuration
-TEXT_MODEL_PATH = 'text/text_feature_extraction/bugdata_format_model_100'
-PARQUET_FILE = 'bug_reports_with_images.parquet'
-GT_CSV = 'Overall - FULL_trimmed_year_1_corpus_with_gt.csv'
-IMG_DIR = 'file/pic_file_parquet_full/'
-XML_DIR = 'file/xml_file_parquet_full/'
-OUTPUT_DIR = 'embeddings/'
+TEXT_MODEL_PATH = os.path.join(project_root, 'text/text_feature_extraction/bugdata_format_model_100')
+PARQUET_FILE = os.path.join(project_root, 'bug_reports_with_images.parquet')
+GT_CSV = os.path.join(project_root, 'Overall - FULL_trimmed_year_1_corpus_with_gt.csv')
+IMG_DIR = os.path.join(project_root, 'file/pic_file_parquet_full/')
+XML_DIR = os.path.join(project_root, 'file/xml_file_parquet_full/')
+OUTPUT_DIR = os.path.join(project_root, 'embeddings/')
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 

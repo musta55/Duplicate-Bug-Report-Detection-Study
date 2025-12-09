@@ -46,7 +46,8 @@ Simple averaging with adaptive weights:
 ├── main.py                      # Original evaluation script
 ├── metrics.py                   # Evaluation metrics (MRR, HITS@k)
 │
-├── generate_embeddings.py       # Script to generate embeddings
+├── embeddings/
+│   └── generate_embeddings.py   # Script to generate embeddings
 ├── run_evaluation_from_embeddings.py # Script to run evaluation from embeddings
 │
 ├── image/                       # Image feature extraction
@@ -115,7 +116,7 @@ The parquet file should contain columns:
 If embeddings are not already generated in `embeddings/`:
 
 ```bash
-python generate_embeddings.py
+python embeddings/generate_embeddings.py
 ```
 
 ### 2. Run Evaluation

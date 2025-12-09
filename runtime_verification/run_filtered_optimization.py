@@ -19,11 +19,14 @@ from PIL import Image
 from io import BytesIO
 import pickle
 
+# Add root directory to path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # Import SemCluster modules
-import cluster
+from core import cluster
 import image.image_main as image_main
 import text.text_main as text_main
-from main import calculate_retrieval_metrics, debug_retrieval
+from core.main import calculate_retrieval_metrics, debug_retrieval
 
 # Monkey patch image.vgg16.getdistance to use normalize=True by default
 import image.vgg16

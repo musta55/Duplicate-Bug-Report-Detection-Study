@@ -14,8 +14,8 @@ import multiprocessing
 from tqdm import tqdm
 
 # Import SemCluster modules for some utilities
-import cluster
-from main import calculate_retrieval_metrics, debug_retrieval
+from core import cluster
+from core.main import calculate_retrieval_metrics, debug_retrieval
 
 # Global variables for worker processes
 text_emb = None

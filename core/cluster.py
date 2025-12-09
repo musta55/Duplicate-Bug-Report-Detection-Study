@@ -1,6 +1,6 @@
 import sys
 import random
-import metrics
+from . import metrics
 
 
 # view progress bar

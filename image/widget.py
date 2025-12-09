@@ -8,7 +8,7 @@ import numpy as np
 import pytesseract
 from PIL import Image
 
-import configure
+from core import configure
 
 
 def canny_boundings(image, canny_sigma=0.33, dilate_count=4):

@@ -6,11 +6,11 @@ import numpy as np
 from apted import APTED
 from sklearn.preprocessing import normalize
 
-# Add current directory to path
-sys.path.append(os.getcwd())
+# Add root directory to path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import cluster
-from main import calculate_retrieval_metrics
+from core import cluster
+from core.main import calculate_retrieval_metrics
 
 # Configuration
 EMBEDDING_DIR = 'embeddings/'

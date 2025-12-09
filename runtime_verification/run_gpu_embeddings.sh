@@ -7,4 +7,4 @@ conda activate semcluster_gpu
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$CONDA_PREFIX/lib/python3.9/site-packages/nvidia/cudnn/lib:$LD_LIBRARY_PATH
 
 # Run the script
-python3 generate_embeddings.py
+python3 embeddings/generate_embeddings.py
