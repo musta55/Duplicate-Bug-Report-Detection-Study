@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-"""
-SemCluster Evaluation using Pre-computed Embeddings
-"""
 
 import os
 import sys

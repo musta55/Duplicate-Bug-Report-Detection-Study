@@ -18,9 +18,9 @@ The following table represents a sample of the ground truth data used for evalua
 | Anki-Android | 8150 | [6614,  8119] | 2 | 945 | True |
 
 #### Dataset Summary
-- **Total Queries**: 125
+- **Total Queries**: 124
 - **Total Projects**: 23
-- **Queries with Images**: 125 (100%)
+- **Queries with Images**: 124 (100%)
 
 ### 2. Similarity Metrics
 **Example**: Ranked retrieval results for query Aegis #1085
@@ -66,34 +66,51 @@ The following table represents a sample of the ground truth data used for evalua
 
 | Metric | Description | Value |
 |--------|-------------|-------|
-| **MRR** | Measures how high the first correct duplicate is ranked, on average. Higher is better (max = 1.0). | **0.1320** |
-| **MAP** | Rewards system for ranking all true duplicates highly. Accounts for multiple duplicates per query. | **0.1026** |
+| **MRR** | Measures how high the first correct duplicate is ranked, on average. Higher is better (max = 1.0). | **0.1714** |
+| **MAP** | Rewards system for ranking all true duplicates highly. Accounts for multiple duplicates per query. | **0.1658** |
 | **HITS@k** | Percentage of queries where a true duplicate is in the top k results. | See below |
 
 #### HITS@k Breakdown
-| k | HITS@k | Queries Found |
-|---|--------|---------------|
-| 1 | 0.0692 | 18/260 |
-| 2 | 0.1077 | 28/260 |
-| 3 | 0.1346 | 35/260 |
-| 4 | 0.1462 | 38/260 |
-| 5 | 0.1808 | 47/260 |
-| 6 | 0.2000 | 52/260 |
-| 7 | 0.2038 | 53/260 |
-| 8 | 0.2192 | 57/260 |
-| 9 | 0.2346 | 61/260 |
-| 10 | 0.2538 | 66/260 |
+| k | HITS@k |
+|---|--------|
+| 1 | 10.48% |
+| 2 | 12.10% |
+| 3 | 15.32% |
+| 4 | 16.94% |
+| 5 | 20.97% |
+| 6 | 23.39% |
+| 7 | 26.61% |
+| 8 | 29.84% |
+| 9 | 31.45% |
+| 10 | 33.06% |
 
 ### Summary
 
-- **Evaluation completed for 260 queries across 23 projects**
-- **MRR of 0.1320** means the first correct duplicate appears at rank ~7.6 on average
-- **MAP of 0.1026** indicates overall precision across all relevant results is 10.3%
-- **HITS@1 of 0.0692** shows 6.9% of queries find a duplicate in the top-1 result
-- **HITS@10 of 0.2538** shows 25.4% of queries find a duplicate in the top-10 results
+- **Evaluation completed for 124 queries across 23 projects**
+- **MRR of 0.1714** indicates the first correct duplicate appears substantially higher on average compared to previous runs
+- **MAP of 0.1658** reflects improved average precision over the evaluated queries
+- **HITS@1 of 10.48%** shows 13/124 queries find a duplicate in the top-1 result
+- **HITS@10 of 33.06%** shows 41/124 queries find a duplicate in the top-10 results
 
 ### Key Findings
-1. ✅ **Data Completeness**: All 3 Aegis queries (450, 772, 1085) are correctly included in the evaluation
-2. ✅ **Fixed Issues**: Resolved ID collision bug and min_duplicates filter that was excluding queries
-3. ⚠️ **Performance**: Retrieval performance is moderate with 25.4% of queries finding duplicates in top-10
-4. 📊 **Multi-modal Features**: Combines image (structure + content) and text (problem + reproduction) features
+
+- 1. ✅ **Data Completeness**: The FILTERED evaluation uses only queries with valid screenshots (100% have images in this subset)
+- 2. ✅ **Fixed Issues**: Resolved ID collision and filtering inconsistencies prior to evaluation
+- 3. ⚠️ **Performance**: Retrieval performance on the FILTERED set is moderate — image-rich queries yield better performance here compared to earlier reported numbers
+- 4. 📊 **Multi-modal Features**: Combines image (structure + content) and text (problem + reproduction) features
+
+---
+
+## Impact of Images within the FULL Dataset (Unweighted)
+
+To evaluate the impact of images under the unweighted (simple-average) fusion, we computed retrieval metrics on the FULL similarity outputs and partitioned queries into those that contain screenshots and those that do not (as indicated in the FULL ground-truth CSV).
+
+| Subset | # Queries | MRR | MAP | HITS@10 |
+|--------|-----------:|:---:|:---:|:-------:|
+| All (FULL, unweighted) | 1961 | 0.0864 | 0.0664 | 15.09% |
+| With Images | 297 | 0.0747 | 0.0526 | 12.46% |
+| Without Images | 1664 | 0.0885 | 0.0688 | 15.56% |
+
+Notes:
+- The unweighted setting uses a simple average across available feature distances (structure, content, bug behavior, reproduction steps), and falls back to text-only averaging when images are absent.
+- These results show that, for the FULL corpus under simple averaging, queries without screenshots slightly outperform those with screenshots on these retrieval metrics. This may reflect the sparsity and noise in the FULL image set (many placeholder/invalid images) and motivates using filtered image subsets or alternative weighting strategies when incorporating visual features.

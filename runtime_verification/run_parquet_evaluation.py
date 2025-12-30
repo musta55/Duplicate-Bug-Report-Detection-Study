@@ -12,14 +12,13 @@ from io import BytesIO
 # Add root directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import SemCluster modules
 from core import cluster
 import image.image_main as image_main
 import text.text_main as text_main
 from core.semcluster import calculate_retrieval_metrics, debug_retrieval
 
 
-def load_sample_queries(csv_path, n_queries=10, min_duplicates=2, require_images=True):
+def load_sample_queries(csv_path, n_queries=10, min_duplicates=1, require_images=True):
     """Load sample queries from CSV
     
     Args:
@@ -72,8 +71,7 @@ def load_parquet_data(parquet_path, report_ids_by_repo):
     """
     table = pq.read_table(parquet_path)
     df = table.to_pandas()
-    
-    # Load reports by filtering on BOTH repo_name AND id to avoid ID collisions
+
     dfs = []
     for repo_name, ids in report_ids_by_repo.items():
         # Filter by repository name AND IDs
@@ -104,9 +102,9 @@ def load_parquet_data(parquet_path, report_ids_by_repo):
                 missing_by_repo[repo_name] = missing
         
         if missing_by_repo:
-            print(f"  ⚠ Missing reports:")
+            print(f" Missing reports:")
             for repo, missing_ids in missing_by_repo.items():
-                print(f"    {repo}: {sorted(list(missing_ids)[:10])}{'...' if len(missing_ids) > 10 else ''}")
+                print(f"{repo}: {sorted(list(missing_ids)[:10])}{'...' if len(missing_ids) > 10 else ''}")
     
     return df_filtered
 
@@ -131,7 +129,7 @@ def extract_images_from_parquet(parquet_df, output_dir):
     for seq_idx, (idx, row) in enumerate(parquet_df.iterrows()):
         report_id = row['id']
         repo_name = row['repo_name']
-        # Use composite key to avoid ID collisions across projects
+        # Use composite key
         composite_id = f"{repo_name}:{report_id}"
         
         id_to_seq[composite_id] = seq_idx
@@ -257,9 +255,8 @@ def prepare_evaluation_csv(sample_df, parquet_df, img_dir, output_path, id_to_se
 
 
 def run_semcluster_pipeline(eval_csv_path, img_dir, xml_dir, reports_with_images, seq_to_id, parquet_df, sample_df, query_to_valid_corpus):
-    """Run SemCluster's feature extraction - OPTIMIZED to only compute query-corpus pairs"""
     print("\n" + "="*70)
-    print("SEMCLUSTER FEATURE EXTRACTION (OPTIMIZED)")
+    print("SEMCLUSTER FEATURE EXTRACTION")
     print("="*70)
     
     # Ensure directories end with / as expected by SemCluster code
