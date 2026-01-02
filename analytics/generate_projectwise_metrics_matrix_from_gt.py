@@ -1,11 +1,68 @@
 import pandas as pd
-import argparse
+import sys
+import os
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from core.metrics import Metrics
 
+# File paths
+SIM_MATRIX_FULL = 'output/semcluster_similarity_matrix_FULL.csv'
+GT_FULL = 'Dataset/Overall - FULL_trimmed_year_1_corpus_with_gt.csv'
+OUTPUT_FULL = 'output/projectwise_metrics_matrix_FULL_with_img_split.csv'
+
+SIM_MATRIX_FILTERED = 'output/semcluster_similarity_matrix_FILTERED.csv'
+GT_FILTERED = 'Dataset/Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv'
+OUTPUT_FILTERED = 'output/projectwise_metrics_matrix_FILTERED_with_img_split.csv'
+
 def calculate_projectwise_metrics(sim_matrix_csv, gt_csv, output_csv):
+    # Create output directory if it doesn't exist
+    os.makedirs(os.path.dirname(output_csv), exist_ok=True)
+    
     sim_df = pd.read_csv(sim_matrix_csv)
     gt_df = pd.read_csv(gt_csv)
     metrics = Metrics()
+
+    # --- Global (all queries) metrics ---
+    # Create query-project pairs from ground truth (each query-project combination is unique)
+    gt_df['query_project'] = gt_df['query'].astype(str) + '_' + gt_df['Repository_Name']
+    all_query_project_pairs = set(gt_df['query_project'])
+    
+    # Identify queries with images per project
+    queries_with_image_per_project = set(gt_df[gt_df['query_has_image'] == True]['query_project'])
+    queries_text_only_per_project = all_query_project_pairs - queries_with_image_per_project
+
+    # Add query_project to sim_df
+    sim_df['query_project'] = sim_df['query'].astype(str) + '_' + sim_df['Project']
+    
+    # Filter sim_df to only those query-project pairs present in ground truth
+    sim_df = sim_df[sim_df['query_project'].isin(all_query_project_pairs)]
+
+    # Split by text-only vs with images
+    all_text_only_df = sim_df[sim_df['query_project'].isin(queries_text_only_per_project)].copy()
+    all_text_only_df['q_id'] = all_text_only_df['query_project']
+    
+    all_text_img_df = sim_df[sim_df['query_project'].isin(queries_with_image_per_project)].copy()
+    all_text_img_df['q_id'] = all_text_img_df['query_project']
+
+    global_mrr_text = metrics.computeMRR(all_text_only_df, 'rank') if not all_text_only_df.empty else 0.0
+    global_mrr_img = metrics.computeMRR(all_text_img_df, 'rank') if not all_text_img_df.empty else 0.0
+    global_map_text = metrics.computeMAP(all_text_only_df, 'rank') if not all_text_only_df.empty else 0.0
+    global_map_img = metrics.computeMAP(all_text_img_df, 'rank') if not all_text_img_df.empty else 0.0
+    global_recall10_text = metrics.computeRecall_K(all_text_only_df, 10, 'rank') if not all_text_only_df.empty else 0.0
+    global_recall10_img = metrics.computeRecall_K(all_text_img_df, 10, 'rank') if not all_text_img_df.empty else 0.0
+
+    print("\nGLOBAL METRICS (each query-project pair counted as unique):")
+    print(f"Total query-project pairs in ground truth: {len(all_query_project_pairs)}")
+    print(f"Total query-project pairs in sim_df: {len(sim_df['query_project'].unique())}")
+    print(f"Text Only Queries: {len(all_text_only_df['q_id'].unique())}")
+    print(f"Text Only MRR: {global_mrr_text:.4f}")
+    print(f"Text Only MAP: {global_map_text:.4f}")
+    print(f"Text Only HITS@10: {global_recall10_text*100:.2f}%")
+    print(f"With Images Queries: {len(all_text_img_df['q_id'].unique())}")
+    print(f"With Images MRR: {global_mrr_img:.4f}")
+    print(f"With Images MAP: {global_map_img:.4f}")
+    print(f"With Images HITS@10: {global_recall10_img*100:.2f}%\n")
     projects = sim_df['Project'].unique()
     results = []
     summary = []
@@ -128,9 +185,16 @@ def calculate_projectwise_metrics(sim_matrix_csv, gt_csv, output_csv):
     print(f"Projectwise metrics matrix saved to {output_csv}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate projectwise metrics matrix for FULL or FILTERED dataset using ground truth.")
-    parser.add_argument('--sim_matrix', type=str, required=True, help='Input similarity matrix CSV')
-    parser.add_argument('--gt', type=str, required=True, help='Ground truth CSV')
-    parser.add_argument('--output', type=str, required=True, help='Output CSV file path')
-    args = parser.parse_args()
-    calculate_projectwise_metrics(args.sim_matrix, args.gt, args.output)
+    print("=" * 80)
+    print("PROCESSING FULL DATASET")
+    print("=" * 80)
+    calculate_projectwise_metrics(SIM_MATRIX_FULL, GT_FULL, OUTPUT_FULL)
+    
+    print("\n" + "=" * 80)
+    print("PROCESSING FILTERED DATASET")
+    print("=" * 80)
+    calculate_projectwise_metrics(SIM_MATRIX_FILTERED, GT_FILTERED, OUTPUT_FILTERED)
+    
+    print("\n" + "=" * 80)
+    print("COMPLETED - Both datasets processed successfully")
+    print("=" * 80)
