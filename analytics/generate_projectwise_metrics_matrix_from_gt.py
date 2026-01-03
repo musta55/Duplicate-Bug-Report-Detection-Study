@@ -191,16 +191,48 @@ def calculate_projectwise_metrics(sim_matrix_csv, gt_csv, output_csv, is_full_da
             'Recall@10_Diff': f"{recall10_diff:.4f}",
         })
 
-    # Custom column order and header
+    # Custom column order and header matching the template
+    df_out = pd.DataFrame(results)
+    
+    # Rename columns to match template format
+    column_mapping = {
+        'Repository': 'Repository',
+        '#queries_text_only': '#queries',
+        '#queries_text+img': '#queries with image',
+        'MRR_Text Only': 'MRR_Text Only',
+        'MRR_Text+Image': 'MRR_Text+Image',
+        'MRR_Diff': 'MRR_Diff',
+        'MRR_RI%': 'MRR_RI',
+        'MAP_Text Only': 'MAP_Text Only',
+        'MAP_Text+Image': 'MAP_Text+Image',
+        'MAP_Diff': 'MAP_Diff',
+        'MAP_RI%': 'MAP_RI',
+        'Recall@1_Text Only': 'Recall@1_Text Only',
+        'Recall@1_Text+Image': 'Recall@1_Text+Image',
+        'Recall@1_Diff': 'Recall@1_Diff',
+        'Recall@5_Text Only': 'Recall@5_Text Only',
+        'Recall@5_Text+Image': 'Recall@5_Text+Image',
+        'Recall@5_Diff': 'Recall@5_Diff',
+        'Recall@10_Text Only': 'Recall@10_Text Only',
+        'Recall@10_Text+Image': 'Recall@10_Text+Image',
+        'Recall@10_Diff': 'Recall@10_Diff',
+    }
+    df_out = df_out.rename(columns=column_mapping)
+    
+    # Sort repositories alphabetically (case-insensitive) before adding Overall/Average rows
+    df_out['_sort_key'] = df_out['Repository'].str.lower()
+    df_out = df_out.sort_values('_sort_key').drop('_sort_key', axis=1).reset_index(drop=True)
+    
+    # Define column order
     columns = [
-        'Repository', '#queries_text_only', '#queries_text+img',
-        'MRR_Text Only', 'MRR_Text+Image', 'MRR_Diff', 'MRR_RI%',
-        'MAP_Text Only', 'MAP_Text+Image', 'MAP_Diff', 'MAP_RI%',
+        'Repository', '#queries', '#queries with image',
+        'MRR_Text Only', 'MRR_Text+Image', 'MRR_Diff', 'MRR_RI',
+        'MAP_Text Only', 'MAP_Text+Image', 'MAP_Diff', 'MAP_RI',
         'Recall@1_Text Only', 'Recall@1_Text+Image', 'Recall@1_Diff',
         'Recall@5_Text Only', 'Recall@5_Text+Image', 'Recall@5_Diff',
         'Recall@10_Text Only', 'Recall@10_Text+Image', 'Recall@10_Diff',
     ]
-    df_out = pd.DataFrame(results)[columns]
+    df_out = df_out[columns]
 
     # Compute overall (weighted by #queries) and average (unweighted mean) rows
     metric_cols = [
@@ -217,19 +249,19 @@ def calculate_projectwise_metrics(sim_matrix_csv, gt_csv, output_csv, is_full_da
         df_metrics[col] = df_metrics[col].astype(float)
     
     # Weighted overall (by #queries for each strategy)
-    total_queries_text = df_out['#queries_text_only'].astype(int).sum()
-    total_queries_img = df_out['#queries_text+img'].astype(int).sum()
+    total_queries_text = df_out['#queries'].astype(int).sum()
+    total_queries_img = df_out['#queries with image'].astype(int).sum()
     
-    overall = {'Repository': 'Overall', '#queries_text_only': total_queries_text, '#queries_text+img': total_queries_img}
+    overall = {'Repository': 'Overall', '#queries': total_queries_text, '#queries with image': total_queries_img}
     
     # For text-only metrics, weight by text_only queries
     for col in ['MRR_Text Only', 'MAP_Text Only', 'Recall@1_Text Only', 'Recall@5_Text Only', 'Recall@10_Text Only']:
-        val = (df_metrics[col] * df_out['#queries_text_only'].astype(int)).sum() / total_queries_text if total_queries_text else 0.0
+        val = (df_metrics[col] * df_out['#queries'].astype(int)).sum() / total_queries_text if total_queries_text else 0.0
         overall[col] = f"{val:.4f}"
     
     # For text+image metrics, weight by text+img queries
     for col in ['MRR_Text+Image', 'MAP_Text+Image', 'Recall@1_Text+Image', 'Recall@5_Text+Image', 'Recall@10_Text+Image']:
-        val = (df_metrics[col] * df_out['#queries_text+img'].astype(int)).sum() / total_queries_img if total_queries_img else 0.0
+        val = (df_metrics[col] * df_out['#queries with image'].astype(int)).sum() / total_queries_img if total_queries_img else 0.0
         overall[col] = f"{val:.4f}"
     
     # Diff columns
@@ -239,29 +271,29 @@ def calculate_projectwise_metrics(sim_matrix_csv, gt_csv, output_csv, is_full_da
         diff = float(overall[img_col]) - float(overall[text_col])
         overall[col] = f"{diff:.4f}"
     
-    # Calculate RI% for overall
+    # Calculate RI for overall
     text_mrr = float(overall['MRR_Text Only'])
     img_mrr = float(overall['MRR_Text+Image'])
-    overall['MRR_RI%'] = f"{((img_mrr - text_mrr) / text_mrr * 100) if text_mrr > 0 else 0.0:.2f}"
+    overall['MRR_RI'] = f"{((img_mrr - text_mrr) / text_mrr * 100) if text_mrr > 0 else 0.0:.2f}%"
     
     text_map = float(overall['MAP_Text Only'])
     img_map = float(overall['MAP_Text+Image'])
-    overall['MAP_RI%'] = f"{((img_map - text_map) / text_map * 100) if text_map > 0 else 0.0:.2f}"
+    overall['MAP_RI'] = f"{((img_map - text_map) / text_map * 100) if text_map > 0 else 0.0:.2f}%"
     
     # Unweighted average
-    avg = {'Repository': 'Average', '#queries_text_only': total_queries_text, '#queries_text+img': total_queries_img}
+    avg = {'Repository': 'Average', '#queries': total_queries_text, '#queries with image': total_queries_img}
     for col in metric_cols:
         val = df_metrics[col].mean()
         avg[col] = f"{val:.4f}"
     
-    # Calculate RI% for average
+    # Calculate RI for average
     text_mrr_avg = df_metrics['MRR_Text Only'].mean()
     img_mrr_avg = df_metrics['MRR_Text+Image'].mean()
-    avg['MRR_RI%'] = f"{((img_mrr_avg - text_mrr_avg) / text_mrr_avg * 100) if text_mrr_avg > 0 else 0.0:.2f}"
+    avg['MRR_RI'] = f"{((img_mrr_avg - text_mrr_avg) / text_mrr_avg * 100) if text_mrr_avg > 0 else 0.0:.2f}%"
     
     text_map_avg = df_metrics['MAP_Text Only'].mean()
     img_map_avg = df_metrics['MAP_Text+Image'].mean()
-    avg['MAP_RI%'] = f"{((img_map_avg - text_map_avg) / text_map_avg * 100) if text_map_avg > 0 else 0.0:.2f}"
+    avg['MAP_RI'] = f"{((img_map_avg - text_map_avg) / text_map_avg * 100) if text_map_avg > 0 else 0.0:.2f}%"
 
     # Append rows
     df_out = pd.concat([df_out, pd.DataFrame([overall, avg])], ignore_index=True)
