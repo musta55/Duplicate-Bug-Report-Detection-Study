@@ -37,11 +37,12 @@ def calculate_projectwise_metrics(sim_matrix_csv, gt_csv, output_csv, is_full_da
     print(f"\nProcessing: {sim_matrix_csv}")
     print(f"Total rows in similarity matrix: {len(sim_df)}")
     
-    # Identify queries with images from ground truth
+    # Identify query-project pairs with images from ground truth (not just query IDs)
+    # A query might have images in one project but not another
     gt_df['query_project'] = gt_df['query'].astype(str) + '_' + gt_df['Repository_Name']
-    queries_with_images_gt = set(gt_df[gt_df['query_has_image'] == True]['query'])
+    query_project_pairs_with_images = set(gt_df[gt_df['query_has_image'] == True]['query_project'])
     
-    print(f"Queries marked with images in GT: {len(queries_with_images_gt)}")
+    print(f"Query-project pairs marked with images in GT: {len(query_project_pairs_with_images)}")
     print(f"Total queries in GT: {len(gt_df)}")
     
     # Recompute scores for both strategies
@@ -99,8 +100,10 @@ def calculate_projectwise_metrics(sim_matrix_csv, gt_csv, output_csv, is_full_da
     
     # For Text+Image: ONLY queries with images (for FULL dataset), or ALL (for FILTERED)
     if is_full_dataset:
-        # FULL: Only use queries that have images
-        text_img_global = sim_df_text_img[sim_df_text_img['query'].isin(queries_with_images_gt)].copy()
+        # FULL: Only use query-project pairs that have images
+        text_img_global = sim_df_text_img.copy()
+        text_img_global['query_project'] = text_img_global['query'].astype(str) + '_' + text_img_global['Project']
+        text_img_global = text_img_global[text_img_global['query_project'].isin(query_project_pairs_with_images)].copy()
     else:
         # FILTERED: All queries have images
         text_img_global = sim_df_text_img.copy()
@@ -128,9 +131,10 @@ def calculate_projectwise_metrics(sim_matrix_csv, gt_csv, output_csv, is_full_da
         project_text_only = sim_df_text_only[sim_df_text_only['Project'] == project].copy()
         project_text_img_all = sim_df_text_img[sim_df_text_img['Project'] == project].copy()
         
-        # For FULL dataset: only use queries with images for Text+Image
+        # For FULL dataset: only use query-project pairs with images for Text+Image
         if is_full_dataset:
-            project_text_img = project_text_img_all[project_text_img_all['query'].isin(queries_with_images_gt)].copy()
+            project_text_img_all['query_project'] = project_text_img_all['query'].astype(str) + '_' + project_text_img_all['Project']
+            project_text_img = project_text_img_all[project_text_img_all['query_project'].isin(query_project_pairs_with_images)].copy()
         else:
             project_text_img = project_text_img_all.copy()
         
