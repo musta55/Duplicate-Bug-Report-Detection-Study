@@ -1,0 +1,14 @@
+⭐ USE THIS SCRIPT FOR EVALUATION ⭐
+
+For reliable evaluation from scratch:
+
+  python run_parquet_evaluation.py --dataset FILTERED
+  python run_parquet_evaluation.py --dataset FULL
+
+This is the PRIMARY, TESTED, and RECOMMENDED evaluation script.
+
+Other scripts:
+- run_evaluation_from_embeddings.py - Fast path (requires pre-computed embeddings)
+- run_evaluation.py - Experimental merged version (may have issues)
+
+See README_EVALUATION.md for detailed comparison.

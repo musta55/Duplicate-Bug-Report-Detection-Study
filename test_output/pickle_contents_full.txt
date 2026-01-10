@@ -1,0 +1,123 @@
+================================================================================
+TEXT EMBEDDINGS (full)
+================================================================================
+
+Total reports: 80
+
+
+Report ID: MobileApp:1
+  Problem vector shape: (100,)
+  Problem vector sample: [0.81410271 0.25533338 0.51167892 0.92139928 0.23836449 0.34503785
+ 0.91082899 0.061299   0.9203887  0.71226237]
+  Procedure vectors: 1 steps
+  First step shape: (100,)
+
+
+Report ID: MobileApp:2
+  Problem vector shape: (100,)
+  Problem vector sample: [0.28354973 0.26867176 0.82298122 0.27106883 0.27622158 0.10099891
+ 0.31269058 0.48847267 0.55036975 0.7068414 ]
+  Procedure vectors: 1 steps
+  First step shape: (100,)
+
+
+Report ID: MobileApp:3
+  Problem vector shape: (100,)
+  Problem vector sample: [0.10258939 0.8724025  0.93575087 0.90638248 0.66045953 0.89024448
+ 0.52498612 0.77807604 0.64129235 0.87409846]
+  Procedure vectors: 1 steps
+  First step shape: (100,)
+
+
+Report ID: MobileApp:4
+  Problem vector shape: (100,)
+  Problem vector sample: [0.03460937 0.76819673 0.99791366 0.46579583 0.10849758 0.8602414
+ 0.05634405 0.07190144 0.43150125 0.75135496]
+  Procedure vectors: 1 steps
+  First step shape: (100,)
+
+
+Report ID: MobileApp:5
+  Problem vector shape: (100,)
+  Problem vector sample: [0.11180198 0.45774904 0.80026768 0.46477783 0.36878746 0.61925461
+ 0.42560576 0.87247573 0.8072765  0.05486842]
+  Procedure vectors: 1 steps
+  First step shape: (100,)
+
+================================================================================
+STRUCTURE EMBEDDINGS (full)
+================================================================================
+
+Total reports: 8
+
+
+Report ID: MobileApp:1
+  Tree type: Tree
+  Tree representation: {root{button{text}{icon}}{list{item1{text}{img}}{item2{text}{img}}}{footer{btn}}}
+
+
+Report ID: MobileApp:2
+  Tree type: Tree
+  Tree representation: {root{header{title}}{body{text}{image}}{footer}}
+
+
+Report ID: MobileApp:3
+  Tree type: Tree
+  Tree representation: {root{view{text}{button}}}
+
+
+Report ID: MobileApp:4
+  Tree type: Tree
+  Tree representation: {root{list{item1}{item2}{item3}}}
+
+
+Report ID: MobileApp:5
+  Tree type: Tree
+  Tree representation: {root{scroll{view1{text}}{view2{image}{text}}}}
+
+================================================================================
+CONTENT EMBEDDINGS (full)
+================================================================================
+
+Total reports: 8
+
+
+Report ID: MobileApp:1
+  Content regions: 1
+  First region bbox: [0, 0, 100, 100]
+  First region vector shape: (512,)
+  First region vector sample: [0.48011798 0.80692672 0.83792321 0.34924761 0.04239162 0.7089543
+ 0.66103231 0.26444941 0.90212058 0.19488211]
+
+
+Report ID: MobileApp:2
+  Content regions: 1
+  First region bbox: [0, 0, 100, 100]
+  First region vector shape: (512,)
+  First region vector sample: [0.42722078 0.99173075 0.40722947 0.84888764 0.48551549 0.7739526
+ 0.7759049  0.41903907 0.32665806 0.89686423]
+
+
+Report ID: MobileApp:3
+  Content regions: 1
+  First region bbox: [0, 0, 100, 100]
+  First region vector shape: (512,)
+  First region vector sample: [0.15279334 0.83487334 0.55637557 0.08382229 0.54748539 0.63876382
+ 0.47820453 0.39039826 0.62191446 0.54243459]
+
+
+Report ID: MobileApp:4
+  Content regions: 1
+  First region bbox: [0, 0, 100, 100]
+  First region vector shape: (512,)
+  First region vector sample: [0.87935783 0.53208346 0.34381917 0.19734658 0.49749772 0.98039279
+ 0.35666967 0.91089301 0.3746278  0.88318888]
+
+
+Report ID: MobileApp:5
+  Content regions: 1
+  First region bbox: [0, 0, 100, 100]
+  First region vector shape: (512,)
+  First region vector sample: [0.19982565 0.70684003 0.70074908 0.05475362 0.41712347 0.9275309
+ 0.32382829 0.81433528 0.9914032  0.7051199 ]
+

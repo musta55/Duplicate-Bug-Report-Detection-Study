@@ -1,0 +1,6 @@
+Repository,#queries,#queries with image,MRR_Text Only,MRR_Text+Image,MRR_Diff,MRR_RI,MAP_Text Only,MAP_Text+Image,MAP_Diff,MAP_RI,Recall@1_Text Only,Recall@1_Text+Image,Recall@1_Diff,Recall@5_Text Only,Recall@5_Text+Image,Recall@5_Diff,Recall@10_Text Only,Recall@10_Text+Image,Recall@10_Diff
+AdminTool,5,5,0.5167,0.5167,0.0,0.0,0.4769,0.4769,0.0,0.0,0.1,0.1,0.0,0.8,0.8,0.0,1.0,1.0,0.0
+BackendAPI,5,5,0.2248,0.2248,0.0,0.0,0.2208,0.2208,0.0,0.0,0.0,0.0,0.0,0.3,0.3,0.0,0.5,0.5,0.0
+Dashboard,5,5,0.5167,0.5167,0.0,0.0,0.4602,0.4602,0.0,0.0,0.1,0.1,0.0,0.7,0.7,0.0,1.0,1.0,0.0
+MobileApp,5,5,0.4282,0.0532,-0.375,-87.57,0.2893,0.0726,-0.2166,-74.88,0.1,0.0,0.1,0.3,0.0,0.3,0.4,0.0,0.4
+WebPortal,5,5,0.0943,0.0943,0.0,0.0,0.1207,0.1207,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.4,0.4,0.0

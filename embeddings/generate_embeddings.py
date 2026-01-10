@@ -20,6 +20,9 @@ if project_root not in sys.path:
 import image.vgg16 as vgg16
 
 # Configuration
+# Dataset Coverage:
+#   - FILTERED dataset: 100% text + 100% images (all reports have screenshots)
+#   - FULL dataset: 100% text + 10-12% images (only some reports have screenshots)
 TEXT_MODEL_PATH = os.path.join(project_root, 'text/text_feature_extraction/bugdata_format_model_100')
 PARQUET_FILE = os.path.join(project_root, 'Dataset/bug_reports_with_images.parquet')
 GT_CSV = os.path.join(project_root, 'Dataset/Overall - FULL_trimmed_year_1_corpus_with_gt.csv')
@@ -44,8 +47,18 @@ def parse_id_list(id_string):
     if not cleaned: return []
     return [int(x.strip()) for x in cleaned.split('|') if x.strip()]
 
-def get_relevant_ids():
-    """Get set of all relevant IDs from GT CSV"""
+def get_relevant_ids(filter_by_images=False):
+    """
+    Get set of relevant IDs from GT CSV.
+    
+    Args:
+        filter_by_images: If True, only return IDs that have images.
+                         For text embeddings, use False (all reports).
+                         For structure/content embeddings, use True (only reports with images).
+    
+    Returns:
+        set: Composite IDs (repo:id) of relevant reports
+    """
     print(f"Loading GT CSV from {GT_CSV}...")
     df = pd.read_csv(GT_CSV)
     relevant_ids = set()
@@ -53,18 +66,36 @@ def get_relevant_ids():
     for idx, row in df.iterrows():
         repo = row['Repository_Name']
         
-        # Query
-        relevant_ids.add(f"{repo}:{row['query']}")
-        
-        # GT
-        for gid in parse_id_list(row['ground_truth']):
-            relevant_ids.add(f"{repo}:{gid}")
+        if filter_by_images:
+            # Only include reports that have images
+            # Query with image
+            if row.get('query_has_image', False):
+                relevant_ids.add(f"{repo}:{row['query']}")
             
-        # Corpus
-        for cid in parse_id_list(row['corpus']):
-            relevant_ids.add(f"{repo}:{cid}")
+            # GT issues with images
+            if 'ground_truth_issues_with_images' in row:
+                for gid in parse_id_list(row['ground_truth_issues_with_images']):
+                    relevant_ids.add(f"{repo}:{gid}")
             
-    print(f"Found {len(relevant_ids)} relevant reports.")
+            # Corpus issues with images
+            if 'corpus_issues_with_images' in row:
+                for cid in parse_id_list(row['corpus_issues_with_images']):
+                    relevant_ids.add(f"{repo}:{cid}")
+        else:
+            # Include all reports (for text embeddings)
+            # Query
+            relevant_ids.add(f"{repo}:{row['query']}")
+            
+            # GT
+            for gid in parse_id_list(row['ground_truth']):
+                relevant_ids.add(f"{repo}:{gid}")
+                
+            # Corpus
+            for cid in parse_id_list(row['corpus']):
+                relevant_ids.add(f"{repo}:{cid}")
+            
+    filter_str = " with images" if filter_by_images else ""
+    print(f"Found {len(relevant_ids)} relevant reports{filter_str}.")
     return relevant_ids
 
 def get_sentence_vector(model, s):
@@ -123,7 +154,10 @@ def is_pure_color(img):
 from text.text_feature_extraction.text_feature_extraction import text_feature_extraction
 
 def generate_text_embeddings(parquet_df):
-    """Generate and save text embeddings"""
+    """Generate and save text embeddings
+    
+    Note: All reports (100%) in both FILTERED and FULL datasets have text descriptions.
+    """
     output_file = os.path.join(OUTPUT_DIR, 'text_embeddings.pkl')
     
     embeddings = {}
@@ -169,13 +203,15 @@ def generate_text_embeddings(parquet_df):
         print(f"Processing chunk {i//CHUNK_SIZE + 1}/{total_chunks} ({len(chunk_descriptions)} reports)...")
         
         try:
-            # Run TextCNN on chunk
+            # Run TextCNN on chunk Core Semcluster
             results = text_feature_extraction(chunk_descriptions)
             
             print(f"Computing Word2Vec vectors for {len(results)} results...")
             for j, res in enumerate(results):
                 cid = chunk_ids[j]
                 
+                # 5 embeddings and tests -> decode the currect embeddings or not
+
                 # Problem Vector
                 problems = res.get('problems_list', [])
                 problem_text = ' '.join(problems)
@@ -219,14 +255,17 @@ def generate_text_embeddings(parquet_df):
     print(f"Saved {len(embeddings)} text embeddings.")
 
 def generate_structure_embeddings(parquet_df):
-    """Generate and save structure embeddings (Trees)"""
+    """Generate and save structure embeddings (Trees)
+    
+    Note: Structure features require XML layout files (from screenshots).
+    - FILTERED dataset: 100% coverage (all have images)
+    - FULL dataset: 10-12% coverage (only reports with screenshots)
+    """
     output_file = os.path.join(OUTPUT_DIR, 'structure_embeddings.pkl')
     
+    # Start with empty embeddings dict - only generate for reports in parquet_df
+    # Do NOT load existing embeddings to avoid mixing old unfiltereddata with new filtered data
     embeddings = {}
-    if os.path.exists(output_file):
-        print(f"Loading existing structure embeddings from {output_file}")
-        with open(output_file, 'rb') as f:
-            embeddings = pickle.load(f)
             
     print(f"Generating structure embeddings...")
     count = 0
@@ -296,17 +335,21 @@ def generate_structure_embeddings(parquet_df):
 
     with open(output_file, 'wb') as f:
         pickle.dump(embeddings, f)
-    print(f"Saved {len(embeddings)} structure embeddings.")
+    coverage = (len(embeddings) / len(parquet_df) * 100) if len(parquet_df) > 0 else 0
+    print(f"Saved {len(embeddings)} structure embeddings ({coverage:.1f}% coverage).")
 
 def generate_content_embeddings(parquet_df):
-    """Generate and save content embeddings (VGG16 vectors for widgets)"""
+    """Generate and save content embeddings (VGG16 vectors for widgets)
+    
+    Note: Content features require screenshots with extractable widgets.
+    - FILTERED dataset: 100% coverage (all have images)
+    - FULL dataset: 10-12% coverage (only reports with screenshots)
+    """
     output_file = os.path.join(OUTPUT_DIR, 'content_embeddings.pkl')
     
+    # Start with empty embeddings dict - only generate for reports in parquet_df
+    # Do NOT load existing embeddings to avoid mixing old unfiltered data with new filtered data
     embeddings = {}
-    if os.path.exists(output_file):
-        print(f"Loading existing content embeddings from {output_file}")
-        with open(output_file, 'rb') as f:
-            embeddings = pickle.load(f)
             
     print(f"Generating content embeddings...")
     
@@ -411,6 +454,10 @@ def generate_content_embeddings(parquet_df):
         
     with open(output_file, 'wb') as f:
         pickle.dump(embeddings, f)
+        
+    reports_with_content = len(set(cid for cid in embeddings.keys()))
+    coverage = (reports_with_content / len(parquet_df) * 100) if len(parquet_df) > 0 else 0
+    print(f"Saved content embeddings for {reports_with_content} reports ({coverage:.1f}% coverage)")
     print(f"Saved {len(embeddings)} content embeddings.")
 
 def process_batch(model, batch, embeddings):
@@ -450,24 +497,40 @@ def main():
     df = table.to_pandas()
     print(f"Loaded {len(df)} reports.")
     
-    # Filter relevant IDs
-    relevant_ids = get_relevant_ids()
-    
     # Create composite ID column
     df['composite_id'] = df['repo_name'] + ':' + df['id'].astype(str)
     
-    # Filter
-    df_filtered = df[df['composite_id'].isin(relevant_ids)].copy()
-    print(f"Filtered to {len(df_filtered)} relevant reports.")
+    # 1. TEXT EMBEDDINGS - ALL reports
+    print("\n" + "="*60)
+    print("GENERATING TEXT EMBEDDINGS (100% expected)")
+    print("="*60)
+    relevant_ids_all = get_relevant_ids(filter_by_images=False)
+    df_text = df[df['composite_id'].isin(relevant_ids_all)].copy()
+    print(f"Processing {len(df_text)} reports for text embeddings")
+    generate_text_embeddings(df_text)
     
-    # 1. Text
-    generate_text_embeddings(df_filtered)
+    # 2. STRUCTURE EMBEDDINGS - Only reports with images
+    print("\n" + "="*60)
+    print("GENERATING STRUCTURE EMBEDDINGS (only reports with images)")
+    print("Expected coverage: FILTERED=100%, FULL=10-12%")
+    print("="*60)
+    relevant_ids_with_images = get_relevant_ids(filter_by_images=True)
+    df_structure = df[df['composite_id'].isin(relevant_ids_with_images)].copy()
+    print(f"Processing {len(df_structure)} reports for structure embeddings")
+    generate_structure_embeddings(df_structure)
     
-    # 2. Structure
-    generate_structure_embeddings(df_filtered)
+    # 3. CONTENT EMBEDDINGS - Only reports with images
+    print("\n" + "="*60)
+    print("GENERATING CONTENT EMBEDDINGS (VGG16, only reports with images)")
+    print("Expected coverage: FILTERED=100%, FULL=10-12%")
+    print("="*60)
+    df_content = df[df['composite_id'].isin(relevant_ids_with_images)].copy()
+    print(f"Processing {len(df_content)} reports for content embeddings")
+    generate_content_embeddings(df_content)
     
-    # 3. Content
-    generate_content_embeddings(df_filtered)
+    print("\n" + "="*60)
+    print("EMBEDDING GENERATION COMPLETE")
+    print("="*60)
     
     print("Done generating embeddings.")
 

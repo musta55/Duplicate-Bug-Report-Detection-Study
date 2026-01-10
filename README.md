@@ -44,23 +44,24 @@ Simple averaging with adaptive weights:
 ├── core/                        # Core logic and utilities
 │   ├── cluster.py               # Clustering algorithms
 │   ├── configure.py             # Configuration utilities
-│   ├── semcluster.py            # Core Logic
-│   └── metrics.py               # Evaluation metrics (MRR, HITS@k)
+│   ├── semcluster.py            # Core SemCluster logic
+│   └── metrics.py               # Evaluation metrics (MRR, MAP, HITS@k)
 │
-├── analytics/                   # Analysis scripts
+├── embeddings/                  # Pre-computed embeddings and generation script
+│   ├── generate_embeddings.py  # Script to generate embeddings
+│   ├── text_embeddings.pkl     # BB + RS text features
+│   ├── structure_embeddings.pkl # SF structure features
+│   └── content_embeddings.pkl  # CF visual features
 │
-├── embeddings/
-│   └── generate_embeddings.py   # Script to generate embeddings
-│
-├── runtime_verification/        # Evaluation scripts
-│
-├── run_evaluation_from_embeddings.py # Script to run evaluation from embeddings
+├── run_evaluation_from_embeddings.py # Main evaluation script
 │
 ├── image/                       # Image feature extraction
 │   ├── vgg16.py                # VGG16 visual features (GPU-accelerated)
-│   ├── structure_feature.py    # UI layout features
+│   ├── structure_feature.py    # UI layout features (Tree Edit Distance)
 │   ├── content_feature.py      # Image content analysis
-│   └── ...
+│   ├── image_main.py           # Image processing entry point
+│   ├── vgg16_stub.py           # VGG16 model stub
+│   └── widget.py               # Widget extraction utilities
 │
 ├── text/                        # Text feature extraction
 │   ├── text_main.py            # Text processing entry point
@@ -72,14 +73,54 @@ Simple averaging with adaptive weights:
 │       └── runs/TextCNN_model/ # Pre-trained TextCNN checkpoints
 │
 ├── Dataset/
-│   ├── Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv  # FILTERED ground truth
-│   ├── Overall - FULL_trimmed_year_1_corpus_with_gt.csv      # FULL ground truth
+│   ├── Overall - FILTERED_trimmed_year_1_corpus_with_gt.csv  # 125 queries (100% text + 100% images)
+│   ├── Overall - FULL_trimmed_year_1_corpus_with_gt.csv      # 2,323 queries (100% text + 10-12% images)
 │   └── bug_reports_with_images.parquet
 │
-├── output/
-│   ├── semcluster_similarity_matrix_FILTERED.csv  # FILTERED results
-│   └── semcluster_similarity_matrix_FULL.csv      # FULL results
+├── output/                      # Evaluation results
+│   ├── semcluster_similarity_matrix_FILTERED.csv
+│   ├── semcluster_similarity_matrix_FULL.csv
+│   ├── Projectwise_Retrieval_Filtered.csv
+│   └── Projectwise_Retrieval_Full.csv
+│
+└── testing/                     # Testing infrastructure
+    ├── test_pipeline_quick.sh  # Quick pipeline test script
+    ├── test_scenarios.py       # Test scenario generator
+    ├── post_process_results.py # Results post-processing
+    └── README.md               # Testing documentation
 ```
+
+See [DATASET_INFO.md](DATASET_INFO.md) for detailed dataset coverage information.
+
+## Testing
+
+### Pipeline Testing
+
+Validate the core pipeline: embedding generation → similarity computation → metrics calculation
+
+```bash
+# Run complete pipeline test (FILTERED + FULL scenarios)
+cd testing
+./test_pipeline_quick.sh
+
+# View results
+cat ../test_output/pipeline_test_report.json
+cat ../test_output/Projectwise_Retrieval_FILTERED.csv
+cat ../test_output/Projectwise_Retrieval_FULL.csv
+```
+
+**Test Coverage:**
+- ✅ Embedding generation: text (BB+RS), structure (SF), content (CF)
+- ✅ Pickle file creation and loading
+- ✅ FILTERED scenario: 100% text + 100% images (4-way fusion)
+- ✅ FULL scenario: 100% text + 10-12% images (adaptive 2/3/4-way fusion)
+- ✅ Distance metrics: Euclidean (text/content) + Tree Edit Distance (structure)
+- ✅ Metrics calculation: MRR, MAP, Recall@1/5/10 per project
+- ✅ Component scores: BB, RS, SF, CF extraction
+
+See [testing/README.md](testing/README.md) for complete testing documentation.
+
+---
 
 ## Setup
 
@@ -120,28 +161,70 @@ The parquet file should contain columns:
 
 ## Usage
 
-### 1. Generate Embeddings (Optional)
+### Quick Start
 
-If embeddings are not already generated in `embeddings/`:
+**For complete evaluation from scratch (recommended):**
 
 ```bash
-python embeddings/generate_embeddings.py
+# FILTERED dataset (queries with images only) - 125 queries
+python run_parquet_evaluation.py --dataset FILTERED
+
+# FULL dataset (all queries, adaptive fusion) - 2,323 queries  
+python run_parquet_evaluation.py --dataset FULL
 ```
 
-### 2. Run Evaluation
+This will:
+1. Load bug reports from parquet
+2. Extract images and UI layouts
+3. Run feature extraction (text + image)
+4. Compute similarities
+5. Generate evaluation results in `output/`
 
-**Run FILTERED Evaluation (260 queries)**
+**See [README_EVALUATION.md](README_EVALUATION.md) for detailed guide on all evaluation scripts.**
+
+### Advanced Options
 
 ```bash
-python run_evaluation_from_embeddings.py --dataset FILTERED
+# Process specific number of queries
+python run_parquet_evaluation.py --dataset FILTERED --n-queries 10
+
+# Process specific query ID
+python run_parquet_evaluation.py --dataset FILTERED --query-id 450
 ```
 
-Output: `output/semcluster_similarity_matrix_FILTERED.csv`
+### Output Files
 
-**Run FULL Evaluation (1961 queries)**
+The evaluation generates:
 
-```bash
-python run_evaluation_from_embeddings.py --dataset FULL
+- **Similarity Matrix**: `output/semcluster_similarity_matrix_{FILTERED|FULL}.csv`
+  - Format: `Project,query,corpus,score,rank,c_is_gt,BB,RS,SF,CF`
+  - Contains ranked candidates for each query with component scores
+  
+- **Projectwise Metrics**: `output/Projectwise_Retrieval_{FILTERED|FULL}.csv`
+  - Per-project retrieval metrics (MRR, MAP, Recall@K)
+
+- **Intermediate Files**:
+  - `file/pic_file_parquet_{filtered|full}/` - Extracted images
+  - `file/xml_file_parquet_{filtered|full}/` - UI layout XMLs
+  - `file/label_file_parquet/evaluation_{filtered|full}.csv` - Evaluation manifest
+
+### Results
+
+The console output will show:
+```
+EVALUATION COMPLETE
+======================================================================
+Queries evaluated: 125
+Total unique reports: 1,234
+Images extracted: 450
+Output file: output/semcluster_similarity_matrix_FILTERED.csv
+Retrieval Performance:
+  MRR: 0.1703
+  MAP: 0.1647
+  HITS@1:  10.40%
+  HITS@5:  20.80%
+  HITS@10: 32.80%
+======================================================================
 ```
 
 Output: `output/semcluster_similarity_matrix_FULL.csv`

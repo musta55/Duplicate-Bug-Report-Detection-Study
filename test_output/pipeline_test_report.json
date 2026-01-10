@@ -1,0 +1,21 @@
+{
+  "tests_passed": 2,
+  "tests_failed": 0,
+  "scenarios": {
+    "filtered": {
+      "text_coverage": 100.0,
+      "image_coverage": 100.0,
+      "pairs_computed": 60
+    },
+    "full": {
+      "text_coverage": 100.0,
+      "image_coverage": 10.0,
+      "pairs_computed": 375,
+      "fusion_modes": {
+        "4way": 35,
+        "3way": 0,
+        "2way": 340
+      }
+    }
+  }
+}

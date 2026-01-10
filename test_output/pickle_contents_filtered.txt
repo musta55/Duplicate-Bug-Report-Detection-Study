@@ -1,0 +1,123 @@
+================================================================================
+TEXT EMBEDDINGS (filtered)
+================================================================================
+
+Total reports: 18
+
+
+Report ID: AndroidApp:1
+  Problem vector shape: (100,)
+  Problem vector sample: [0.10308394 0.24217892 0.73212377 0.26872268 0.56863184 0.97508635
+ 0.12770588 0.59564089 0.09018606 0.23702473]
+  Procedure vectors: 3 steps
+  First step shape: (100,)
+
+
+Report ID: AndroidApp:2
+  Problem vector shape: (100,)
+  Problem vector sample: [0.94643525 0.09512832 0.04555569 0.13879493 0.51823061 0.21363329
+ 0.74465199 0.66360812 0.5322339  0.04122429]
+  Procedure vectors: 3 steps
+  First step shape: (100,)
+
+
+Report ID: AndroidApp:3
+  Problem vector shape: (100,)
+  Problem vector sample: [0.14265115 0.52037575 0.7975231  0.2552586  0.71047996 0.18534673
+ 0.9763719  0.7148522  0.76749847 0.06982452]
+  Procedure vectors: 3 steps
+  First step shape: (100,)
+
+
+Report ID: AndroidApp:4
+  Problem vector shape: (100,)
+  Problem vector sample: [0.13996207 0.96381171 0.09196443 0.34117941 0.41173325 0.70156741
+ 0.80348577 0.99378211 0.65277537 0.19837904]
+  Procedure vectors: 3 steps
+  First step shape: (100,)
+
+
+Report ID: AndroidApp:5
+  Problem vector shape: (100,)
+  Problem vector sample: [0.55371306 0.68537733 0.75102545 0.59966667 0.88828404 0.8261888
+ 0.12329749 0.84746015 0.56666088 0.73984871]
+  Procedure vectors: 3 steps
+  First step shape: (100,)
+
+================================================================================
+STRUCTURE EMBEDDINGS (filtered)
+================================================================================
+
+Total reports: 18
+
+
+Report ID: AndroidApp:1
+  Tree type: Tree
+  Tree representation: {root{button{text}{icon}}{list{item1{text}{img}}{item2{text}{img}}}{footer{btn}}}
+
+
+Report ID: AndroidApp:2
+  Tree type: Tree
+  Tree representation: {root{header{title}}{body{text}{image}}{footer}}
+
+
+Report ID: AndroidApp:3
+  Tree type: Tree
+  Tree representation: {root{view{text}{button}}}
+
+
+Report ID: AndroidApp:4
+  Tree type: Tree
+  Tree representation: {root{list{item1}{item2}{item3}}}
+
+
+Report ID: AndroidApp:5
+  Tree type: Tree
+  Tree representation: {root{scroll{view1{text}}{view2{image}{text}}}}
+
+================================================================================
+CONTENT EMBEDDINGS (filtered)
+================================================================================
+
+Total reports: 18
+
+
+Report ID: AndroidApp:1
+  Content regions: 1
+  First region bbox: [0, 0, 100, 100]
+  First region vector shape: (512,)
+  First region vector sample: [0.11904357 0.67926744 0.14601621 0.13665609 0.19497735 0.46353268
+ 0.73967569 0.70993824 0.17500497 0.61246053]
+
+
+Report ID: AndroidApp:2
+  Content regions: 1
+  First region bbox: [0, 0, 100, 100]
+  First region vector shape: (512,)
+  First region vector sample: [0.46046198 0.33859102 0.9210563  0.13827215 0.89818859 0.44626408
+ 0.12188622 0.95292417 0.97579822 0.36848525]
+
+
+Report ID: AndroidApp:3
+  Content regions: 1
+  First region bbox: [0, 0, 100, 100]
+  First region vector shape: (512,)
+  First region vector sample: [0.50975829 0.65282128 0.04589322 0.85329408 0.63002571 0.68238045
+ 0.12595947 0.74842797 0.21244925 0.75805514]
+
+
+Report ID: AndroidApp:4
+  Content regions: 1
+  First region bbox: [0, 0, 100, 100]
+  First region vector shape: (512,)
+  First region vector sample: [0.9519934  0.85897796 0.45427783 0.8259099  0.71758093 0.40458304
+ 0.49124529 0.75172539 0.901996   0.00209943]
+
+
+Report ID: AndroidApp:5
+  Content regions: 1
+  First region bbox: [0, 0, 100, 100]
+  First region vector shape: (512,)
+  First region vector sample: [0.80335303 0.7196666  0.49539923 0.18543089 0.48108537 0.94417085
+ 0.85324265 0.76234389 0.33810406 0.26992828]
+
